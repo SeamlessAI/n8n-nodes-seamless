@@ -1090,6 +1090,7 @@ class Seamless implements INodeType {
 		defaults: { name: 'Seamless' },
 		inputs: [NodeConnectionTypes.Main],
 		outputs: [NodeConnectionTypes.Main],
+		usableAsTool: true,
 		credentials: [
 			{
 				name: 'seamlessApi',
