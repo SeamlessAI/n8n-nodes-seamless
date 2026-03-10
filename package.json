@@ -1,0 +1,60 @@
+{
+	"name": "n8n-nodes-seamless",
+	"version": "0.1.0",
+	"description": "n8n community nodes for Seamless.ai — REST API and trigger",
+	"license": "MIT",
+	"type": "commonjs",
+	"main": "dist/index.js",
+	"types": "dist/index.d.ts",
+	"homepage": "https://seamless.ai",
+	"author": "Seamless",
+	"repository": {
+		"type": "git",
+		"url": "https://github.com/nicholasestep/n8n-nodes-seamless"
+	},
+	"keywords": [
+		"n8n-community-node-package",
+		"n8n",
+		"seamless"
+	],
+	"scripts": {
+		"build": "n8n-node build",
+		"dev": "n8n-node dev",
+		"lint": "eslint && n8n-node lint",
+		"lint:fix": "eslint --fix && n8n-node lint --fix",
+		"precommit": "lint-staged"
+	},
+	"lint-staged": {
+		"*.ts": [
+			"eslint --fix"
+		]
+	},
+	"files": [
+		"dist"
+	],
+	"n8n": {
+		"n8nNodesApiVersion": "1",
+		"credentials": [
+			"dist/credentials/SeamlessApi.credentials.js"
+		],
+		"nodes": [
+			"dist/nodes/Seamless/Seamless.node.js",
+			"dist/nodes/Seamless/SeamlessTrigger.node.js"
+		]
+	},
+	"peerDependencies": {
+		"n8n-workflow": ">=1.120.0"
+	},
+	"devDependencies": {
+		"@n8n/node-cli": "0.22.0",
+		"@types/node": "22.19.13",
+		"eslint": "9.39.2",
+		"eslint-plugin-n8n-nodes-base": "1.16.6",
+		"globals": "17.0.0",
+		"lint-staged": "15.5.1",
+		"n8n-workflow": "2.11.0",
+		"prettier": "3.8.0",
+		"typescript": "5.9.3",
+		"typescript-eslint": "8.56.1"
+	}
+}
