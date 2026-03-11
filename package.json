@@ -10,7 +10,7 @@
 	"author": "Seamless",
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/nicholasestep/n8n-nodes-seamless"
+		"url": "https://github.com/SeamlessAI/n8n-nodes-seamless"
 	},
 	"keywords": [
 		"n8n-community-node-package",
