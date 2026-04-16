@@ -46,15 +46,15 @@
 		"n8n-workflow": ">=1.120.0"
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "0.22.0",
-		"@types/node": "22.19.13",
-		"eslint": "9.39.2",
+		"@n8n/node-cli": "0.23.1",
+		"@types/node": "25.6.0",
+		"eslint": "10.2.0",
 		"eslint-plugin-n8n-nodes-base": "1.16.6",
-		"globals": "17.0.0",
-		"lint-staged": "15.5.1",
-		"n8n-workflow": "2.11.0",
-		"prettier": "3.8.0",
-		"typescript": "5.9.3",
-		"typescript-eslint": "8.56.1"
+		"globals": "17.5.0",
+		"lint-staged": "16.4.0",
+		"n8n-workflow": "2.13.1",
+		"prettier": "3.8.3",
+		"typescript": "6.0.2",
+		"typescript-eslint": "8.58.2"
 	}
 }

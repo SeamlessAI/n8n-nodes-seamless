@@ -9,7 +9,8 @@
     "skipLibCheck": true,
     "forceConsistentCasingInFileNames": true,
     "resolveJsonModule": true,
-    "moduleResolution": "node"
+    "moduleResolution": "node",
+    "ignoreDeprecations": "6.0"
   },
   "include": ["credentials/**/*.ts", "nodes/**/*.ts", "index.ts"],
   "exclude": ["dist", "node_modules"]
