@@ -45,6 +45,7 @@ const companyFields: INodeProperties[] = [
 		name: 'companyName',
 		type: 'string',
 		default: '',
+		placeholder: 'e.g. Acme Corp',
 		description:
 			'Filter by company name. Comma-separated values to provide multiple.',
 		displayOptions: {
@@ -56,6 +57,7 @@ const companyFields: INodeProperties[] = [
 		name: 'companyDomain',
 		type: 'string',
 		default: '',
+		placeholder: 'e.g. acme.com',
 		description:
 			'Filter by company domain. Comma-separated values to provide multiple.',
 		displayOptions: {
@@ -67,6 +69,7 @@ const companyFields: INodeProperties[] = [
 		name: 'industry',
 		type: 'string',
 		default: '',
+		placeholder: 'e.g. Software',
 		description:
 			'Filter by industry. Comma-separated values to provide multiple.',
 		displayOptions: {
@@ -202,6 +205,7 @@ const companyFields: INodeProperties[] = [
 		name: 'searchResultIds',
 		type: 'string',
 		default: '',
+		placeholder: 'e.g. abc123,def456',
 		description: 'Comma-separated search result IDs from a prior search',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['research'] },
@@ -285,6 +289,7 @@ const companyFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
+		placeholder: 'e.g. req_abc123,req_def456',
 		description: 'Comma-separated request IDs from a prior research call',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['pollResearch'] },

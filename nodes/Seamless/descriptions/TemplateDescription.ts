@@ -19,19 +19,19 @@ const templateOperations: INodeProperties[] = [
 			{
 				name: 'Create',
 				value: 'create',
-				action: 'Create a template',
+				action: 'Create template',
 				description: 'Create a new email template',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
-				action: 'Delete a template',
+				action: 'Delete template',
 				description: 'Permanently remove an email template',
 			},
 			{
 				name: 'Get',
 				value: 'get',
-				action: 'Get a template',
+				action: 'Get template',
 				description: 'Retrieve an email template by ID',
 			},
 			{
@@ -43,7 +43,7 @@ const templateOperations: INodeProperties[] = [
 			{
 				name: 'Update',
 				value: 'update',
-				action: 'Update a template',
+				action: 'Update template',
 				description: 'Update an existing email template',
 			},
 		],
@@ -53,18 +53,41 @@ const templateOperations: INodeProperties[] = [
 
 const templateFields: INodeProperties[] = [
 	{
-		displayName: 'Template ID',
+		displayName: 'Template',
 		name: 'templateId',
-		type: 'number',
-		default: 0,
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The ID of the template',
+		description: 'The template to operate on',
 		displayOptions: {
 			show: {
 				resource: ['template'],
 				operation: ['get', 'update', 'delete'],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: { searchListMethod: 'searchTemplates', searchable: true },
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 12345',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Must be a numeric ID',
+						},
+					},
+				],
+			},
+		],
 	},
 	{
 		displayName: 'Type',
@@ -246,6 +269,20 @@ const templateFields: INodeProperties[] = [
 		description: 'Whether to include engagement statistics in results',
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },
+		},
+	},
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		description:
+			'Whether to return a simplified version of the response instead of the raw data',
+		displayOptions: {
+			show: {
+				resource: ['template'],
+				operation: ['get', 'getMany'],
+			},
 		},
 	},
 ];

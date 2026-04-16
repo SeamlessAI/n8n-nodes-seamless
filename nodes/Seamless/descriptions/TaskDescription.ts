@@ -38,26 +38,26 @@ const taskOperations: INodeProperties[] = [
 			{
 				name: 'Create',
 				value: 'create',
-				action: 'Create a task',
+				action: 'Create task',
 				description: 'Create a new task',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
-				action: 'Delete a task',
+				action: 'Delete task',
 				description: 'Permanently remove a task',
 			},
 			{
 				name: 'Execute Action',
 				value: 'executeAction',
-				action: 'Execute an action on a task',
+				action: 'Execute action on task',
 				description:
 					'Change the state of a task (e.g. pause, start, complete)',
 			},
 			{
 				name: 'Get',
 				value: 'get',
-				action: 'Get a task',
+				action: 'Get task',
 				description: 'Retrieve a task by ID',
 			},
 			{
@@ -69,7 +69,7 @@ const taskOperations: INodeProperties[] = [
 			{
 				name: 'Update',
 				value: 'update',
-				action: 'Update a task',
+				action: 'Update task',
 				description: 'Update task properties',
 			},
 		],
@@ -79,18 +79,41 @@ const taskOperations: INodeProperties[] = [
 
 const taskFields: INodeProperties[] = [
 	{
-		displayName: 'Task ID',
+		displayName: 'Task',
 		name: 'taskId',
-		type: 'number',
-		default: 0,
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The ID of the task',
+		description: 'The task to operate on',
 		displayOptions: {
 			show: {
 				resource: ['task'],
 				operation: ['get', 'update', 'delete', 'executeAction'],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: { searchListMethod: 'searchTasks', searchable: true },
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 12345',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Must be a numeric ID',
+						},
+					},
+				],
+			},
+		],
 	},
 	// ------ Create ------
 	{
@@ -256,6 +279,17 @@ const taskFields: INodeProperties[] = [
 				operation: ['getMany'],
 				returnAll: [false],
 			},
+		},
+	},
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		description:
+			'Whether to return a simplified version of the response instead of the raw data',
+		displayOptions: {
+			show: { resource: ['task'], operation: ['get', 'getMany'] },
 		},
 	},
 	{

@@ -11,19 +11,19 @@ const listOperations: INodeProperties[] = [
 			{
 				name: 'Create',
 				value: 'create',
-				action: 'Create a list',
+				action: 'Create list',
 				description: 'Create a new contact list',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
-				action: 'Delete a list',
+				action: 'Delete list',
 				description: 'Permanently remove a contact list',
 			},
 			{
 				name: 'Get',
 				value: 'get',
-				action: 'Get a list',
+				action: 'Get list',
 				description: 'Retrieve a single contact list by ID',
 			},
 			{
@@ -35,7 +35,7 @@ const listOperations: INodeProperties[] = [
 			{
 				name: 'Update',
 				value: 'update',
-				action: 'Update a list',
+				action: 'Update list',
 				description: 'Rename a contact list',
 			},
 		],
@@ -45,18 +45,41 @@ const listOperations: INodeProperties[] = [
 
 const listFields: INodeProperties[] = [
 	{
-		displayName: 'List ID',
+		displayName: 'List',
 		name: 'listId',
-		type: 'number',
-		default: 0,
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The ID of the list',
+		description: 'The list to operate on',
 		displayOptions: {
 			show: {
 				resource: ['list'],
 				operation: ['get', 'update', 'delete'],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: { searchListMethod: 'searchLists', searchable: true },
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 12345',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Must be a numeric ID',
+						},
+					},
+				],
+			},
+		],
 	},
 	{
 		displayName: 'Name',
@@ -64,6 +87,7 @@ const listFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
+		placeholder: 'e.g. myContactList',
 		description: 'The name of the list',
 		displayOptions: {
 			show: { resource: ['list'], operation: ['create', 'update'] },

@@ -23,7 +23,7 @@ const callOperations: INodeProperties[] = [
 			{
 				name: 'Log',
 				value: 'log',
-				action: 'Log a call',
+				action: 'Log call',
 				description: 'Log a completed call for a contact',
 			},
 		],

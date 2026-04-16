@@ -11,26 +11,26 @@ const emailOperations: INodeProperties[] = [
 			{
 				name: 'Create Draft',
 				value: 'createDraft',
-				action: 'Create an email draft',
+				action: 'Create email draft',
 				description: 'Create a new email draft for a contact',
 			},
 			{
 				name: 'Get Draft',
 				value: 'getDraft',
-				action: 'Get an email draft',
+				action: 'Get email draft',
 				description: 'Retrieve an email draft by ID',
 			},
 			{
 				name: 'Preview',
 				value: 'preview',
-				action: 'Preview an email',
+				action: 'Preview email',
 				description:
 					'Send a preview of an email to a specified address',
 			},
 			{
 				name: 'Send',
 				value: 'send',
-				action: 'Send an email',
+				action: 'Send email',
 				description: 'Send an email immediately to a contact',
 			},
 			{
@@ -43,13 +43,13 @@ const emailOperations: INodeProperties[] = [
 			{
 				name: 'Send Draft',
 				value: 'sendDraft',
-				action: 'Send an email draft',
+				action: 'Send email draft',
 				description: 'Send a previously created email draft',
 			},
 			{
 				name: 'Update Draft',
 				value: 'updateDraft',
-				action: 'Update an email draft',
+				action: 'Update email draft',
 				description: 'Update properties of an email draft',
 			},
 		],
@@ -202,6 +202,17 @@ const emailFields: INodeProperties[] = [
 			},
 		},
 	},
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		description:
+			'Whether to return a simplified version of the response instead of the raw data',
+		displayOptions: {
+			show: { resource: ['email'], operation: ['getDraft'] },
+		},
+	},
 	// ------ Create Draft / Send ------
 	{
 		displayName: 'Contact ID',
@@ -220,6 +231,7 @@ const emailFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
+		placeholder: 'e.g. sender@example.com',
 		description: 'The sender email address',
 		displayOptions: {
 			show: {
@@ -234,6 +246,7 @@ const emailFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		required: true,
+		placeholder: 'e.g. recipient@example.com',
 		description: 'The recipient email address',
 		displayOptions: {
 			show: {

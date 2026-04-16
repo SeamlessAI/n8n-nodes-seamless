@@ -3,8 +3,10 @@ import {
 	type ICredentialsDecrypted,
 	type IDataObject,
 	type IExecuteFunctions,
+	type ILoadOptionsFunctions,
 	type INodeCredentialTestResult,
 	type INodeExecutionData,
+	type INodeListSearchResult,
 	type INodeType,
 	type INodeTypeDescription,
 	NodeConnectionTypes,
@@ -50,6 +52,88 @@ import {
 } from './descriptions';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
+
+function extractRlId(
+	ctx: IExecuteFunctions,
+	paramName: string,
+	itemIndex: number
+): number {
+	const raw = ctx.getNodeParameter(paramName, itemIndex) as
+		| number
+		| { value: number | string };
+	if (typeof raw === 'object' && raw !== null && 'value' in raw) {
+		return Number(raw.value);
+	}
+	return Number(raw);
+}
+
+const CAMPAIGN_SIMPLIFIED_KEYS = [
+	'id',
+	'name',
+	'status',
+	'type',
+	'isPublic',
+	'contactCount',
+	'stepCount',
+	'createdAt',
+	'updatedAt',
+];
+const TASK_SIMPLIFIED_KEYS = [
+	'id',
+	'name',
+	'type',
+	'status',
+	'contactId',
+	'campaignId',
+	'dueDate',
+	'createdAt',
+	'updatedAt',
+];
+const TEMPLATE_SIMPLIFIED_KEYS = [
+	'id',
+	'name',
+	'type',
+	'subject',
+	'createdAt',
+	'updatedAt',
+];
+const SAVED_SEARCH_SIMPLIFIED_KEYS = [
+	'id',
+	'name',
+	'type',
+	'resultCount',
+	'createdAt',
+	'updatedAt',
+];
+const EMAIL_SIMPLIFIED_KEYS = [
+	'id',
+	'contactId',
+	'from',
+	'to',
+	'subject',
+	'status',
+	'scheduledAt',
+	'createdAt',
+	'updatedAt',
+];
+
+function simplifyItem(item: IDataObject, keys: string[]): IDataObject {
+	const out: IDataObject = {};
+	for (const key of keys) {
+		if (item[key] !== undefined) out[key] = item[key];
+	}
+	return out;
+}
+
+function simplifyResults(
+	data: IDataObject | IDataObject[],
+	keys: string[],
+	shouldSimplify: boolean
+): IDataObject | IDataObject[] {
+	if (!shouldSimplify) return data;
+	if (Array.isArray(data)) return data.map((item) => simplifyItem(item, keys));
+	return simplifyItem(data, keys);
+}
 
 function cleanObj(obj: IDataObject): IDataObject {
 	const cleaned: IDataObject = {};
@@ -479,19 +563,19 @@ async function executeList(
 		return seamlessApiRequest.call(this, 'POST', '/lists', { name });
 	}
 	if (operation === 'get') {
-		const id = this.getNodeParameter('listId', i) as number;
+		const id = extractRlId(this, 'listId', i);
 		return seamlessApiRequest.call(this, 'GET', `/lists/${id}`);
 	}
 	if (operation === 'getMany') {
 		return seamlessApiRequest.call(this, 'GET', '/lists');
 	}
 	if (operation === 'update') {
-		const id = this.getNodeParameter('listId', i) as number;
+		const id = extractRlId(this, 'listId', i);
 		const name = this.getNodeParameter('name', i) as string;
 		return seamlessApiRequest.call(this, 'PUT', `/lists/${id}`, { name });
 	}
 	if (operation === 'delete') {
-		const id = this.getNodeParameter('listId', i) as number;
+		const id = extractRlId(this, 'listId', i);
 		await seamlessApiRequest.call(this, 'DELETE', `/lists/${id}`);
 		return { deleted: true };
 	}
@@ -520,24 +604,28 @@ async function executeCampaign(
 		return seamlessApiRequest.call(this, 'POST', '/campaigns', body);
 	}
 	if (operation === 'get') {
-		const id = this.getNodeParameter('campaignId', i) as number;
-		return seamlessApiRequest.call(this, 'GET', `/campaigns/${id}`);
+		const id = extractRlId(this, 'campaignId', i);
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const result = await seamlessApiRequest.call(this, 'GET', `/campaigns/${id}`);
+		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const qs: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) qs.searchText = searchText;
 		qs.limit = this.getNodeParameter('limit', i, 10) as number;
-		return seamlessApiRequest.call(
+		const result = await seamlessApiRequest.call(
 			this,
 			'GET',
 			'/campaigns',
 			undefined,
 			qs
 		);
+		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
 	if (operation === 'update') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
@@ -554,12 +642,12 @@ async function executeCampaign(
 		return seamlessApiRequest.call(this, 'PUT', `/campaigns/${id}`, body);
 	}
 	if (operation === 'delete') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		await seamlessApiRequest.call(this, 'DELETE', `/campaigns/${id}`);
 		return { deleted: true };
 	}
 	if (operation === 'executeAction') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		const action = this.getNodeParameter('action', i) as string;
 		return seamlessApiRequest.call(
 			this,
@@ -569,14 +657,14 @@ async function executeCampaign(
 		);
 	}
 	if (operation === 'clone') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		const name = this.getNodeParameter('name', i) as string;
 		return seamlessApiRequest.call(this, 'POST', `/campaigns/${id}/clone`, {
 			name,
 		});
 	}
 	if (operation === 'addContacts') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		const contactIds = csvToNumberArray(
 			this.getNodeParameter('contactIds', i)
 		);
@@ -588,7 +676,7 @@ async function executeCampaign(
 		);
 	}
 	if (operation === 'removeContacts') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		const contactIds = csvToNumberArray(
 			this.getNodeParameter('contactIds', i)
 		);
@@ -600,7 +688,7 @@ async function executeCampaign(
 		);
 	}
 	if (operation === 'getContacts') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
 		const qs: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
@@ -644,7 +732,7 @@ async function executeCampaign(
 		return (response.data || response) as IDataObject[];
 	}
 	if (operation === 'getMetrics') {
-		const id = this.getNodeParameter('campaignId', i) as number;
+		const id = extractRlId(this, 'campaignId', i);
 		return seamlessApiRequest.call(this, 'GET', `/campaigns/${id}/metrics`);
 	}
 	return {};
@@ -657,7 +745,7 @@ async function executeCampaignStep(
 	operation: string,
 	i: number
 ): Promise<IDataObject | IDataObject[]> {
-	const campaignId = this.getNodeParameter('campaignId', i) as number;
+	const campaignId = extractRlId(this, 'campaignId', i);
 
 	if (operation === 'create') {
 		const body: IDataObject = {
@@ -763,23 +851,27 @@ async function executeSavedSearch(
 		return seamlessApiRequest.call(this, 'POST', '/saved-searches', body);
 	}
 	if (operation === 'get') {
-		const id = this.getNodeParameter('savedSearchId', i) as number;
-		return seamlessApiRequest.call(this, 'GET', `/saved-searches/${id}`);
+		const id = extractRlId(this, 'savedSearchId', i);
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const result = await seamlessApiRequest.call(this, 'GET', `/saved-searches/${id}`);
+		return simplifyResults(result, SAVED_SEARCH_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const qs: IDataObject = {};
 		const type = this.getNodeParameter('type', i, '') as string;
 		if (type) qs.type = type;
-		return seamlessApiRequest.call(
+		const result = await seamlessApiRequest.call(
 			this,
 			'GET',
 			'/saved-searches',
 			undefined,
 			qs
 		);
+		return simplifyResults(result, SAVED_SEARCH_SIMPLIFIED_KEYS, simplify);
 	}
 	if (operation === 'update') {
-		const id = this.getNodeParameter('savedSearchId', i) as number;
+		const id = extractRlId(this, 'savedSearchId', i);
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
@@ -805,7 +897,7 @@ async function executeSavedSearch(
 		);
 	}
 	if (operation === 'delete') {
-		const id = this.getNodeParameter('savedSearchId', i) as number;
+		const id = extractRlId(this, 'savedSearchId', i);
 		await seamlessApiRequest.call(this, 'DELETE', `/saved-searches/${id}`);
 		return { deleted: true };
 	}
@@ -835,17 +927,20 @@ async function executeTemplate(
 		return seamlessApiRequest.call(this, 'POST', '/templates', body);
 	}
 	if (operation === 'get') {
-		const id = this.getNodeParameter('templateId', i) as number;
+		const id = extractRlId(this, 'templateId', i);
 		const type = this.getNodeParameter('type', i, 'email') as string;
-		return seamlessApiRequest.call(
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const result = await seamlessApiRequest.call(
 			this,
 			'GET',
 			`/templates/${id}`,
 			undefined,
 			{ type }
 		);
+		return simplifyResults(result, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const qs: IDataObject = {
 			page: this.getNodeParameter('page', i, 1) as number,
 			limit: this.getNodeParameter('limit', i, 15) as number,
@@ -868,10 +963,11 @@ async function executeTemplate(
 			undefined,
 			qs
 		);
-		return (response.data || response) as IDataObject[];
+		const items = (response.data || response) as IDataObject[];
+		return simplifyResults(items, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject[];
 	}
 	if (operation === 'update') {
-		const id = this.getNodeParameter('templateId', i) as number;
+		const id = extractRlId(this, 'templateId', i);
 		const type = this.getNodeParameter('type', i, 'email') as string;
 		const updateFields = this.getNodeParameter(
 			'updateFields',
@@ -887,7 +983,7 @@ async function executeTemplate(
 		);
 	}
 	if (operation === 'delete') {
-		const id = this.getNodeParameter('templateId', i) as number;
+		const id = extractRlId(this, 'templateId', i);
 		const type = this.getNodeParameter('type', i, 'email') as string;
 		await seamlessApiRequest.call(
 			this,
@@ -926,7 +1022,9 @@ async function executeEmail(
 	}
 	if (operation === 'getDraft') {
 		const id = this.getNodeParameter('emailId', i) as number;
-		return seamlessApiRequest.call(this, 'GET', `/emails/${id}`);
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const result = await seamlessApiRequest.call(this, 'GET', `/emails/${id}`);
+		return simplifyResults(result, EMAIL_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'updateDraft') {
 		const id = this.getNodeParameter('emailId', i) as number;
@@ -1035,11 +1133,14 @@ async function executeTask(
 		return seamlessApiRequest.call(this, 'POST', '/tasks', body);
 	}
 	if (operation === 'get') {
-		const id = this.getNodeParameter('taskId', i) as number;
-		return seamlessApiRequest.call(this, 'GET', `/tasks/${id}`);
+		const id = extractRlId(this, 'taskId', i);
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const result = await seamlessApiRequest.call(this, 'GET', `/tasks/${id}`);
+		return simplifyResults(result, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
+		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const qs: IDataObject = {};
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
 		Object.assign(qs, cleanObj(filters));
@@ -1068,7 +1169,7 @@ async function executeTask(
 					hasMore = false;
 				}
 			}
-			return allItems;
+			return simplifyResults(allItems, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject[];
 		}
 		qs.limit = this.getNodeParameter('limit', i, 25) as number;
 		if (qs.offset === undefined) qs.offset = 0;
@@ -1079,10 +1180,11 @@ async function executeTask(
 			undefined,
 			qs
 		);
-		return (response.data || response) as IDataObject[];
+		const items = (response.data || response) as IDataObject[];
+		return simplifyResults(items, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject[];
 	}
 	if (operation === 'update') {
-		const id = this.getNodeParameter('taskId', i) as number;
+		const id = extractRlId(this, 'taskId', i);
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
@@ -1096,12 +1198,12 @@ async function executeTask(
 		);
 	}
 	if (operation === 'delete') {
-		const id = this.getNodeParameter('taskId', i) as number;
+		const id = extractRlId(this, 'taskId', i);
 		await seamlessApiRequest.call(this, 'DELETE', `/tasks/${id}`);
 		return { deleted: true };
 	}
 	if (operation === 'executeAction') {
-		const id = this.getNodeParameter('taskId', i) as number;
+		const id = extractRlId(this, 'taskId', i);
 		const action = this.getNodeParameter('action', i) as string;
 		return seamlessApiRequest.call(this, 'POST', `/tasks/${id}/actions`, {
 			action,
@@ -1289,8 +1391,8 @@ class Seamless implements INodeType {
 					{ name: 'Credits', value: 'credits' },
 					{ name: 'Email', value: 'email' },
 					{ name: 'Email Account', value: 'emailAccount' },
-				{ name: 'Email Footer', value: 'emailFooter' },
-				{ name: 'List', value: 'list' },
+					{ name: 'Email Footer', value: 'emailFooter' },
+					{ name: 'List', value: 'list' },
 					{ name: 'Saved Search', value: 'savedSearch' },
 					{ name: 'Task', value: 'task' },
 					{ name: 'Template', value: 'template' },
@@ -1336,6 +1438,138 @@ class Seamless implements INodeType {
 				credential: ICredentialsDecrypted
 			): Promise<INodeCredentialTestResult> {
 				return testSeamlessApiCredential.call(this, credential);
+			},
+		},
+		listSearch: {
+			async searchLists(
+				this: ILoadOptionsFunctions,
+				filter?: string
+			): Promise<INodeListSearchResult> {
+				const response = await seamlessApiRequest.call(
+					this,
+					'GET',
+					'/lists',
+					undefined,
+					{ limit: 100 }
+				);
+				const items = (response.data || response) as IDataObject[];
+				const results = (Array.isArray(items) ? items : [])
+					.filter(
+						(item) =>
+							!filter ||
+							String(item.name || '')
+								.toLowerCase()
+								.includes(filter.toLowerCase())
+					)
+					.map((item) => ({
+						name: String(item.name || item.id),
+						value: item.id as number,
+					}));
+				return { results };
+			},
+			async searchCampaigns(
+				this: ILoadOptionsFunctions,
+				filter?: string
+			): Promise<INodeListSearchResult> {
+				const response = await seamlessApiRequest.call(
+					this,
+					'GET',
+					'/campaigns',
+					undefined,
+					{ limit: 100 }
+				);
+				const items = (response.data || response) as IDataObject[];
+				const results = (Array.isArray(items) ? items : [])
+					.filter(
+						(item) =>
+							!filter ||
+							String(item.name || '')
+								.toLowerCase()
+								.includes(filter.toLowerCase())
+					)
+					.map((item) => ({
+						name: String(item.name || item.id),
+						value: item.id as number,
+					}));
+				return { results };
+			},
+			async searchTemplates(
+				this: ILoadOptionsFunctions,
+				filter?: string
+			): Promise<INodeListSearchResult> {
+				const response = await seamlessApiRequest.call(
+					this,
+					'GET',
+					'/templates',
+					undefined,
+					{ limit: 100, type: 'email' }
+				);
+				const items = (response.data || response) as IDataObject[];
+				const results = (Array.isArray(items) ? items : [])
+					.filter(
+						(item) =>
+							!filter ||
+							String(item.name || '')
+								.toLowerCase()
+								.includes(filter.toLowerCase())
+					)
+					.map((item) => ({
+						name: String(item.name || item.id),
+						value: item.id as number,
+					}));
+				return { results };
+			},
+			async searchSavedSearches(
+				this: ILoadOptionsFunctions,
+				filter?: string
+			): Promise<INodeListSearchResult> {
+				const response = await seamlessApiRequest.call(
+					this,
+					'GET',
+					'/saved-searches',
+					undefined,
+					{ limit: 100 }
+				);
+				const items = (response.data || response) as IDataObject[];
+				const results = (Array.isArray(items) ? items : [])
+					.filter(
+						(item) =>
+							!filter ||
+							String(item.name || '')
+								.toLowerCase()
+								.includes(filter.toLowerCase())
+					)
+					.map((item) => ({
+						name: String(item.name || item.id),
+						value: item.id as number,
+					}));
+				return { results };
+			},
+			async searchTasks(
+				this: ILoadOptionsFunctions,
+				filter?: string
+			): Promise<INodeListSearchResult> {
+				const response = await seamlessApiRequest.call(
+					this,
+					'GET',
+					'/tasks',
+					undefined,
+					{ limit: 100 }
+				);
+				const items = (response.data || response) as IDataObject[];
+				const results = (Array.isArray(items) ? items : [])
+					.filter(
+						(item) =>
+							!filter ||
+							String(item.name || '')
+								.toLowerCase()
+								.includes(filter.toLowerCase())
+					)
+					.map((item) => ({
+						name: String(item.name || item.id),
+						value: item.id as number,
+					}));
+				return { results };
 			},
 		},
 	};

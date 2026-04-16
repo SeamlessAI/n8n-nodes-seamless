@@ -11,38 +11,38 @@ const campaignOperations: INodeProperties[] = [
 			{
 				name: 'Add Contacts',
 				value: 'addContacts',
-				action: 'Add contacts to a campaign',
+				action: 'Add contacts to campaign',
 				description: 'Add contacts to a campaign by ID (max 500)',
 			},
 			{
 				name: 'Clone',
 				value: 'clone',
-				action: 'Clone a campaign',
+				action: 'Clone campaign',
 				description: 'Create a copy of an existing campaign',
 			},
 			{
 				name: 'Create',
 				value: 'create',
-				action: 'Create a campaign',
+				action: 'Create campaign',
 				description: 'Create a new campaign',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
-				action: 'Delete a campaign',
+				action: 'Delete campaign',
 				description: 'Permanently delete a campaign',
 			},
 			{
 				name: 'Execute Action',
 				value: 'executeAction',
-				action: 'Execute an action on a campaign',
+				action: 'Execute action on campaign',
 				description:
 					'Start, pause, resume, complete, archive, unarchive, or delete a campaign',
 			},
 			{
 				name: 'Get',
 				value: 'get',
-				action: 'Get a campaign',
+				action: 'Get campaign',
 				description: 'Retrieve a campaign by ID',
 			},
 			{
@@ -66,13 +66,13 @@ const campaignOperations: INodeProperties[] = [
 			{
 				name: 'Remove Contacts',
 				value: 'removeContacts',
-				action: 'Remove contacts from a campaign',
+				action: 'Remove contacts from campaign',
 				description: 'Remove contacts from a campaign by ID (max 500)',
 			},
 			{
 				name: 'Update',
 				value: 'update',
-				action: 'Update a campaign',
+				action: 'Update campaign',
 				description: 'Update campaign properties',
 			},
 		],
@@ -82,12 +82,12 @@ const campaignOperations: INodeProperties[] = [
 
 const campaignFields: INodeProperties[] = [
 	{
-		displayName: 'Campaign ID',
+		displayName: 'Campaign',
 		name: 'campaignId',
-		type: 'number',
-		default: 0,
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The numeric ID of the campaign',
+		description: 'The campaign to operate on',
 		displayOptions: {
 			show: {
 				resource: ['campaign'],
@@ -104,6 +104,29 @@ const campaignFields: INodeProperties[] = [
 				],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: { searchListMethod: 'searchCampaigns', searchable: true },
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 12345',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Must be a numeric ID',
+						},
+					},
+				],
+			},
+		],
 	},
 	// ------ Create ------
 	{
@@ -226,6 +249,17 @@ const campaignFields: INodeProperties[] = [
 		typeOptions: { minValue: 1, maxValue: 25 },
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['getMany'] },
+		},
+	},
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		description:
+			'Whether to return a simplified version of the response instead of the raw data',
+		displayOptions: {
+			show: { resource: ['campaign'], operation: ['get', 'getMany'] },
 		},
 	},
 	// ------ Get Contacts ------

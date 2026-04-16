@@ -11,19 +11,19 @@ const campaignStepOperations: INodeProperties[] = [
 			{
 				name: 'Create',
 				value: 'create',
-				action: 'Create a campaign step',
+				action: 'Create campaign step',
 				description: 'Add a new step to a campaign',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
-				action: 'Delete a campaign step',
+				action: 'Delete campaign step',
 				description: 'Remove a step from a campaign',
 			},
 			{
 				name: 'Execute Action',
 				value: 'executeAction',
-				action: 'Execute an action on a campaign step',
+				action: 'Execute action on campaign step',
 				description: 'Pause, resume, or skip a campaign step',
 			},
 			{
@@ -35,7 +35,7 @@ const campaignStepOperations: INodeProperties[] = [
 			{
 				name: 'Update',
 				value: 'update',
-				action: 'Update a campaign step',
+				action: 'Update campaign step',
 				description: 'Update properties of a campaign step',
 			},
 		],
@@ -45,13 +45,36 @@ const campaignStepOperations: INodeProperties[] = [
 
 const campaignStepFields: INodeProperties[] = [
 	{
-		displayName: 'Campaign ID',
+		displayName: 'Campaign',
 		name: 'campaignId',
-		type: 'number',
-		default: 0,
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The numeric ID of the parent campaign',
+		description: 'The parent campaign',
 		displayOptions: { show: { resource: ['campaignStep'] } },
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: { searchListMethod: 'searchCampaigns', searchable: true },
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 12345',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Must be a numeric ID',
+						},
+					},
+				],
+			},
+		],
 	},
 	{
 		displayName: 'Step ID',

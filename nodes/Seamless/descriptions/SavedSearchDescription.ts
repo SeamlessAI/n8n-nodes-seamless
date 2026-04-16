@@ -11,19 +11,19 @@ const savedSearchOperations: INodeProperties[] = [
 			{
 				name: 'Create',
 				value: 'create',
-				action: 'Create a saved search',
+				action: 'Create saved search',
 				description: 'Create a new saved search',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
-				action: 'Delete a saved search',
+				action: 'Delete saved search',
 				description: 'Permanently remove a saved search',
 			},
 			{
 				name: 'Get',
 				value: 'get',
-				action: 'Get a saved search',
+				action: 'Get saved search',
 				description: 'Retrieve a saved search by ID',
 			},
 			{
@@ -35,7 +35,7 @@ const savedSearchOperations: INodeProperties[] = [
 			{
 				name: 'Update',
 				value: 'update',
-				action: 'Update a saved search',
+				action: 'Update saved search',
 				description: 'Update an existing saved search',
 			},
 		],
@@ -45,18 +45,44 @@ const savedSearchOperations: INodeProperties[] = [
 
 const savedSearchFields: INodeProperties[] = [
 	{
-		displayName: 'Saved Search ID',
+		displayName: 'Saved Search',
 		name: 'savedSearchId',
-		type: 'number',
-		default: 0,
+		type: 'resourceLocator',
+		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The ID of the saved search',
+		description: 'The saved search to operate on',
 		displayOptions: {
 			show: {
 				resource: ['savedSearch'],
 				operation: ['get', 'update', 'delete'],
 			},
 		},
+		modes: [
+			{
+				displayName: 'From List',
+				name: 'list',
+				type: 'list',
+				typeOptions: {
+					searchListMethod: 'searchSavedSearches',
+					searchable: true,
+				},
+			},
+			{
+				displayName: 'By ID',
+				name: 'id',
+				type: 'string',
+				placeholder: 'e.g. 12345',
+				validation: [
+					{
+						type: 'regex',
+						properties: {
+							regex: '^[0-9]+$',
+							errorMessage: 'Must be a numeric ID',
+						},
+					},
+				],
+			},
+		],
 	},
 	// ------ Create ------
 	{
@@ -201,6 +227,20 @@ const savedSearchFields: INodeProperties[] = [
 			{ name: 'Companies', value: 'companies' },
 			{ name: 'Contacts', value: 'contacts' },
 		],
+	},
+	{
+		displayName: 'Simplify',
+		name: 'simplify',
+		type: 'boolean',
+		default: true,
+		description:
+			'Whether to return a simplified version of the response instead of the raw data',
+		displayOptions: {
+			show: {
+				resource: ['savedSearch'],
+				operation: ['get', 'getMany'],
+			},
+		},
 	},
 ];
 
