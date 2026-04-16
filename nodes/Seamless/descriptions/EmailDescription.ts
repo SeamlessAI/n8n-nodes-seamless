@@ -25,7 +25,7 @@ const emailOperations: INodeProperties[] = [
 				value: 'preview',
 				action: 'Preview an email',
 				description:
-					'Preview an email with template variables resolved',
+					'Send a preview of an email to a specified address',
 			},
 			{
 				name: 'Send',
@@ -57,6 +57,135 @@ const emailOperations: INodeProperties[] = [
 	},
 ];
 
+const BULK_FILTER_OPTIONS: INodeProperties[] = [
+	{
+		displayName: 'Contact IDs',
+		name: 'contactIds',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated saved contact IDs to include',
+	},
+	{
+		displayName: 'Lists',
+		name: 'lists',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated list IDs to filter contacts by',
+	},
+	{
+		displayName: 'Query Text',
+		name: 'queryText',
+		type: 'string',
+		default: '',
+		description: 'General text search across contact fields',
+	},
+	{
+		displayName: 'Query Text Name',
+		name: 'queryTextName',
+		type: 'string',
+		default: '',
+		description: 'Search by contact name',
+	},
+	{
+		displayName: 'Query Text Company',
+		name: 'queryTextCompany',
+		type: 'string',
+		default: '',
+		description: 'Search by company name',
+	},
+	{
+		displayName: 'Query Text Domain',
+		name: 'queryTextDomain',
+		type: 'string',
+		default: '',
+		description: 'Search by company domain',
+	},
+	{
+		displayName: 'Query Text Title',
+		name: 'queryTextTitle',
+		type: 'string',
+		default: '',
+		description: 'Search by job title',
+	},
+	{
+		displayName: 'Query Text Location',
+		name: 'queryTextLocation',
+		type: 'string',
+		default: '',
+		description: 'Search by contact location',
+	},
+	{
+		displayName: 'Industry Filters',
+		name: 'industryFilters',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated industries',
+	},
+	{
+		displayName: 'Company Filters',
+		name: 'companyFilters',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated companies',
+	},
+	{
+		displayName: 'Seniorities',
+		name: 'seniorities',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated seniority levels',
+	},
+	{
+		displayName: 'Departments',
+		name: 'departments',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated departments',
+	},
+	{
+		displayName: 'Prospect Statuses',
+		name: 'prospectStatuses',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated prospect statuses',
+	},
+	{
+		displayName: 'Engagement Statuses',
+		name: 'engagementStatuses',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated engagement statuses',
+	},
+	{
+		displayName: 'Employee Size Filters',
+		name: 'employeeSizeFilters',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated employee size ranges',
+	},
+	{
+		displayName: 'Revenue Filters',
+		name: 'revenueFilters',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated revenue ranges',
+	},
+	{
+		displayName: 'Campaign IDs',
+		name: 'campaignIds',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated campaign IDs',
+	},
+	{
+		displayName: 'Technologies',
+		name: 'technologies',
+		type: 'string',
+		default: '',
+		description: 'Comma-separated technologies used',
+	},
+];
+
 const emailFields: INodeProperties[] = [
 	// ------ Shared: Email ID ------
 	{
@@ -73,7 +202,7 @@ const emailFields: INodeProperties[] = [
 			},
 		},
 	},
-	// ------ Create Draft ------
+	// ------ Create Draft / Send ------
 	{
 		displayName: 'Contact ID',
 		name: 'contactId',
@@ -122,7 +251,7 @@ const emailFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['email'],
-				operation: ['createDraft', 'send', 'sendBulk', 'preview'],
+				operation: ['createDraft', 'send'],
 			},
 		},
 		options: [
@@ -222,22 +351,115 @@ const emailFields: INodeProperties[] = [
 		name: 'from',
 		type: 'string',
 		default: '',
-		description: 'Sender email address (overrides draft value)',
+		description: 'Sender email address (overrides draft default)',
 		displayOptions: {
 			show: { resource: ['email'], operation: ['sendDraft'] },
 		},
 	},
 	// ------ Send Bulk ------
 	{
-		displayName: 'Filters (JSON)',
-		name: 'filters',
-		type: 'json',
-		default: '{}',
-		description:
-			'JSON filter object defining which contacts receive the email',
+		displayName: 'Bulk Fields',
+		name: 'bulkFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
 		displayOptions: {
 			show: { resource: ['email'], operation: ['sendBulk'] },
 		},
+		options: [
+			{
+				displayName: 'Body',
+				name: 'body',
+				type: 'string',
+				default: '',
+				typeOptions: { rows: 5 },
+				description:
+					'Email body HTML (required if no Template ID). Supports template variables.',
+			},
+			{
+				displayName: 'Schedule At',
+				name: 'scheduleAt',
+				type: 'dateTime',
+				default: '',
+				description: 'When to send the email (ISO 8601)',
+			},
+			{
+				displayName: 'Subject',
+				name: 'subject',
+				type: 'string',
+				default: '',
+				description:
+					'Email subject (required if no Template ID). Supports template variables.',
+			},
+			{
+				displayName: 'Template ID',
+				name: 'templateId',
+				type: 'number',
+				default: 0,
+			},
+		],
+	},
+	{
+		displayName: 'Filters',
+		name: 'filters',
+		type: 'collection',
+		placeholder: 'Add Filter',
+		default: {},
+		description: 'Filter criteria to select saved contacts for bulk email',
+		displayOptions: {
+			show: { resource: ['email'], operation: ['sendBulk'] },
+		},
+		options: BULK_FILTER_OPTIONS,
+	},
+	// ------ Preview ------
+	{
+		displayName: 'Subject',
+		name: 'subject',
+		type: 'string',
+		default: '',
+		required: true,
+		description: 'Email subject line to preview',
+		displayOptions: {
+			show: { resource: ['email'], operation: ['preview'] },
+		},
+	},
+	{
+		displayName: 'Body',
+		name: 'body',
+		type: 'string',
+		default: '',
+		required: true,
+		typeOptions: { rows: 5 },
+		description: 'Email body HTML content to preview',
+		displayOptions: {
+			show: { resource: ['email'], operation: ['preview'] },
+		},
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: {
+			show: { resource: ['email'], operation: ['preview'] },
+		},
+		options: [
+			{
+				displayName: 'From',
+				name: 'from',
+				type: 'string',
+				default: '',
+				description: 'Sender email address',
+			},
+			{
+				displayName: 'Template ID',
+				name: 'templateId',
+				type: 'number',
+				default: 0,
+				description: 'Template ID to use for preview',
+			},
+		],
 	},
 ];
 

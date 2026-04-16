@@ -37,7 +37,7 @@ const campaignOperations: INodeProperties[] = [
 				value: 'executeAction',
 				action: 'Execute an action on a campaign',
 				description:
-					'Start, pause, resume, complete, archive, or unarchive a campaign',
+					'Start, pause, resume, complete, archive, unarchive, or delete a campaign',
 			},
 			{
 				name: 'Get',
@@ -87,7 +87,7 @@ const campaignFields: INodeProperties[] = [
 		type: 'number',
 		default: 0,
 		required: true,
-		description: 'The ID of the campaign',
+		description: 'The numeric ID of the campaign',
 		displayOptions: {
 			show: {
 				resource: ['campaign'],
@@ -116,6 +116,26 @@ const campaignFields: INodeProperties[] = [
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['create', 'clone'] },
 		},
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: {
+			show: { resource: ['campaign'], operation: ['create'] },
+		},
+		options: [
+			{
+				displayName: 'Email Account IDs',
+				name: 'emailAccountIds',
+				type: 'string',
+				default: '',
+				description:
+					'Comma-separated email account IDs to link as sending addresses. Required before adding auto-email or manual-email steps.',
+			},
+		],
 	},
 	// ------ Update ------
 	{
@@ -201,9 +221,9 @@ const campaignFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: { minValue: 1 },
+		default: 10,
+		description: 'Max number of results to return (max 25)',
+		typeOptions: { minValue: 1, maxValue: 25 },
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['getMany'] },
 		},
@@ -224,9 +244,24 @@ const campaignFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: { minValue: 1 },
+		default: 25,
+		description: 'Max number of results to return (max 50)',
+		typeOptions: { minValue: 1, maxValue: 50 },
+		displayOptions: {
+			show: {
+				resource: ['campaign'],
+				operation: ['getContacts'],
+				returnAll: [false],
+			},
+		},
+	},
+	{
+		displayName: 'Offset',
+		name: 'offset',
+		type: 'number',
+		default: 0,
+		description: 'Pagination offset (default 0)',
+		typeOptions: { minValue: 0 },
 		displayOptions: {
 			show: {
 				resource: ['campaign'],

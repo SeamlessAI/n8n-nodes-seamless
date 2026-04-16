@@ -50,7 +50,7 @@ const campaignStepFields: INodeProperties[] = [
 		type: 'number',
 		default: 0,
 		required: true,
-		description: 'The ID of the campaign',
+		description: 'The numeric ID of the parent campaign',
 		displayOptions: { show: { resource: ['campaignStep'] } },
 	},
 	{
@@ -134,10 +134,57 @@ const campaignStepFields: INodeProperties[] = [
 				name: 'templateId',
 				type: 'number',
 				default: 0,
+				description:
+					'ID of an existing template. Cannot be combined with Template Data.',
+			},
+			{
+				displayName: 'Template Data',
+				name: 'templateData',
+				type: 'fixedCollection',
+				default: {},
+				description:
+					'Inline template content. Creates a hidden template for this step. Cannot be combined with Template ID.',
+				options: [
+					{
+						displayName: 'Template Data',
+						name: 'value',
+						values: [
+							{
+								displayName: 'Subject',
+								name: 'subject',
+								type: 'string',
+								default: '',
+								description:
+									'Email subject line. Supports template variables like {first_name}, {company}.',
+							},
+							{
+								displayName: 'Template',
+								name: 'template',
+								type: 'string',
+								default: '',
+								typeOptions: { rows: 5 },
+								description:
+									'Email body HTML content. Supports template variables like {first_name}, {company}, {title}.',
+							},
+						],
+					},
+				],
 			},
 		],
 	},
 	// ------ Update ------
+	{
+		displayName: 'Due Day',
+		name: 'dueDay',
+		type: 'number',
+		default: 1,
+		required: true,
+		description: 'The day number when this step is due (starting at 1)',
+		typeOptions: { minValue: 1 },
+		displayOptions: {
+			show: { resource: ['campaignStep'], operation: ['update'] },
+		},
+	},
 	{
 		displayName: 'Update Fields',
 		name: 'updateFields',
@@ -153,13 +200,6 @@ const campaignStepFields: INodeProperties[] = [
 				name: 'description',
 				type: 'string',
 				default: '',
-			},
-			{
-				displayName: 'Due Day',
-				name: 'dueDay',
-				type: 'number',
-				default: 1,
-				typeOptions: { minValue: 1 },
 			},
 			{
 				displayName: 'Name',
@@ -179,6 +219,41 @@ const campaignStepFields: INodeProperties[] = [
 				name: 'templateId',
 				type: 'number',
 				default: 0,
+				description:
+					'ID of an existing template. Cannot be combined with Template Data.',
+			},
+			{
+				displayName: 'Template Data',
+				name: 'templateData',
+				type: 'fixedCollection',
+				default: {},
+				description:
+					'Inline template content. Cannot be combined with Template ID.',
+				options: [
+					{
+						displayName: 'Template Data',
+						name: 'value',
+						values: [
+							{
+								displayName: 'Subject',
+								name: 'subject',
+								type: 'string',
+								default: '',
+								description:
+									'Email subject line. Supports template variables.',
+							},
+							{
+								displayName: 'Template',
+								name: 'template',
+								type: 'string',
+								default: '',
+								typeOptions: { rows: 5 },
+								description:
+									'Email body HTML content. Supports template variables.',
+							},
+						],
+					},
+				],
 			},
 		],
 	},

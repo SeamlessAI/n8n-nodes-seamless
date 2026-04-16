@@ -17,7 +17,6 @@ Full REST API node for managing Seamless.ai resources:
 - **Template** — Create, get, update, and delete email templates
 - **Email** — Create drafts, send, preview, and send bulk emails
 - **Task** — Create, get, update, delete, and execute task actions
-- **Intent** — Search topics, search companies, and get intent scores
 - **Call** — Log and retrieve calls
 - **Activity** — Retrieve engagement activity events
 - **Email Account** — Manage email accounts

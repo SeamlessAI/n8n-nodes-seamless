@@ -39,8 +39,6 @@ import {
 	emailAccountFields,
 	emailFooterOperations,
 	emailFooterFields,
-	intentOperations,
-	intentFields,
 	listOperations,
 	listFields,
 	savedSearchOperations,
@@ -64,7 +62,106 @@ function cleanObj(obj: IDataObject): IDataObject {
 	return cleaned;
 }
 
+/**
+ * Split a comma-separated string into a trimmed, non-empty array of strings.
+ * Returns an empty array for falsy/empty inputs.
+ */
+function csvToStringArray(value: unknown): string[] {
+	if (!value) return [];
+	return String(value)
+		.split(',')
+		.map((s) => s.trim())
+		.filter(Boolean);
+}
+
+/**
+ * Split a comma-separated string into an array of numbers, dropping non-numeric values.
+ */
+function csvToNumberArray(value: unknown): number[] {
+	return csvToStringArray(value)
+		.map((s) => Number(s))
+		.filter((n) => !Number.isNaN(n));
+}
+
+/**
+ * If `value` is truthy, sets `key` on `target` to the trimmed array; otherwise no-op.
+ */
+function setStringArray(
+	target: IDataObject,
+	key: string,
+	value: unknown
+): void {
+	const arr = csvToStringArray(value);
+	if (arr.length) target[key] = arr;
+}
+
+/**
+ * Convert CSV-shaped filter fields in `filters` (as defined by the MCP
+ * send_bulk_email schema) into arrays for the REST request.
+ */
+const BULK_FILTER_STRING_ARRAY_KEYS = [
+	'industryFilters',
+	'companyFilters',
+	'seniorities',
+	'departments',
+	'prospectStatuses',
+	'engagementStatuses',
+	'employeeSizeFilters',
+	'revenueFilters',
+	'technologies',
+];
+const BULK_FILTER_NUMBER_ARRAY_KEYS = ['contactIds', 'lists', 'campaignIds'];
+
+function normalizeBulkFilters(raw: IDataObject): IDataObject {
+	const out: IDataObject = {};
+	for (const [key, value] of Object.entries(raw)) {
+		if (value === undefined || value === null || value === '') continue;
+		if (BULK_FILTER_STRING_ARRAY_KEYS.includes(key)) {
+			const arr = csvToStringArray(value);
+			if (arr.length) out[key] = arr;
+		} else if (BULK_FILTER_NUMBER_ARRAY_KEYS.includes(key)) {
+			const arr = csvToNumberArray(value);
+			if (arr.length) out[key] = arr;
+		} else {
+			out[key] = value;
+		}
+	}
+	return out;
+}
+
+/**
+ * Extract templateData from an n8n fixedCollection parameter shape
+ * (`{ value: { subject, template } }`), returning the inner object or undefined.
+ */
+function unwrapTemplateData(raw: unknown): IDataObject | undefined {
+	if (!raw || typeof raw !== 'object') return undefined;
+	const outer = raw as IDataObject;
+	const inner = outer.value as IDataObject | undefined;
+	if (!inner) return undefined;
+	const cleaned = cleanObj(inner);
+	return Object.keys(cleaned).length > 0 ? cleaned : undefined;
+}
+
+/**
+ * n8n `number` fields default to 0 when unset. For optional ID-like fields,
+ * drop the 0 so we never send an invalid ID to the REST API.
+ */
+function dropZeroIds(obj: IDataObject, keys: string[]): void {
+	for (const k of keys) {
+		if (obj[k] === 0) delete obj[k];
+	}
+}
+
 // ─── Contact ────────────────────────────────────────────────────────────────
+
+/** Keys on the Contact search `additionalFields` that must be sent as string[]. */
+const CONTACT_SEARCH_CSV_KEYS = [
+	'contactCountry',
+	'contactState',
+	'contactZipCode',
+	'contactKeyword',
+	'technologies',
+];
 
 async function executeContact(
 	this: IExecuteFunctions,
@@ -78,15 +175,31 @@ async function executeContact(
 			: (this.getNodeParameter('limit', i) as number);
 		const body: IDataObject = {};
 
-		const companyName = this.getNodeParameter(
+		setStringArray(
+			body,
 			'companyName',
-			i,
-			''
-		) as string;
-		if (companyName) body.companyName = companyName;
-
-		const jobTitle = this.getNodeParameter('jobTitle', i, '') as string;
-		if (jobTitle) body.jobTitle = jobTitle;
+			this.getNodeParameter('companyName', i, '')
+		);
+		setStringArray(
+			body,
+			'jobTitle',
+			this.getNodeParameter('jobTitle', i, '')
+		);
+		setStringArray(
+			body,
+			'companyDomain',
+			this.getNodeParameter('companyDomain', i, '')
+		);
+		setStringArray(
+			body,
+			'industry',
+			this.getNodeParameter('industry', i, '')
+		);
+		setStringArray(
+			body,
+			'fullname',
+			this.getNodeParameter('fullname', i, '')
+		);
 
 		const seniority = this.getNodeParameter('seniority', i, []) as string[];
 		if (seniority.length) body.seniority = seniority;
@@ -98,31 +211,19 @@ async function executeContact(
 		) as string[];
 		if (department.length) body.department = department;
 
-		const companyDomain = this.getNodeParameter(
-			'companyDomain',
-			i,
-			''
-		) as string;
-		if (companyDomain) body.companyDomain = companyDomain;
-
-		const industry = this.getNodeParameter('industry', i, '') as string;
-		if (industry) body.industry = industry;
-
-		const fullName = this.getNodeParameter('fullName', i, '') as string;
-		if (fullName) body.fullName = fullName;
-
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
-
-		if (body.technologies) {
-			body.technologies = (body.technologies as string)
-				.split(',')
-				.map((s) => s.trim());
+		const cleaned = cleanObj(additionalFields);
+		for (const key of CONTACT_SEARCH_CSV_KEYS) {
+			if (cleaned[key] !== undefined) {
+				setStringArray(body, key, cleaned[key]);
+				delete cleaned[key];
+			}
 		}
+		Object.assign(body, cleaned);
 
 		return seamlessApiSearchAllItems.call(
 			this,
@@ -134,8 +235,11 @@ async function executeContact(
 
 	if (operation === 'research') {
 		const body: IDataObject = {};
-		const ids = this.getNodeParameter('searchResultIds', i, '') as string;
-		if (ids) body.searchResultIds = ids.split(',').map((s) => s.trim());
+		setStringArray(
+			body,
+			'searchResultIds',
+			this.getNodeParameter('searchResultIds', i, '')
+		);
 
 		const contacts = this.getNodeParameter('contacts', i, '[]') as string;
 		const parsed = JSON.parse(contacts);
@@ -148,6 +252,13 @@ async function executeContact(
 		) as boolean;
 		if (isJobChange) body.isJobChange = true;
 
+		const waitForResults = this.getNodeParameter(
+			'waitForResults',
+			i,
+			false
+		) as boolean;
+		if (waitForResults) body.waitForResults = true;
+
 		return seamlessApiRequest.call(
 			this,
 			'POST',
@@ -158,9 +269,24 @@ async function executeContact(
 
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const startDate = this.getNodeParameter('startDate', i) as string;
-		const endDate = this.getNodeParameter('endDate', i) as string;
-		const qs: IDataObject = { startDate, endDate };
+		const startDate = this.getNodeParameter('startDate', i, '') as string;
+		const endDate = this.getNodeParameter('endDate', i, '') as string;
+		const qs: IDataObject = {};
+		if (startDate) qs.startDate = startDate;
+		if (endDate) qs.endDate = endDate;
+
+		const additionalFields = this.getNodeParameter(
+			'additionalFields',
+			i,
+			{}
+		) as IDataObject;
+		const cleaned = cleanObj(additionalFields);
+		if (cleaned.orgIds !== undefined) {
+			const arr = csvToStringArray(cleaned.orgIds);
+			if (arr.length) qs.orgIds = arr.join(',');
+			delete cleaned.orgIds;
+		}
+		Object.assign(qs, cleaned);
 
 		if (returnAll) {
 			return seamlessApiRequestAllItems.call(
@@ -184,14 +310,13 @@ async function executeContact(
 
 	if (operation === 'pollResearch') {
 		const requestIds = this.getNodeParameter('requestIds', i) as string;
+		const ids = csvToStringArray(requestIds);
 		return seamlessApiRequest.call(
 			this,
 			'GET',
 			'/contacts/research/poll',
 			undefined,
-			{
-				requestIds,
-			}
+			{ requestIds: ids.join(',') }
 		);
 	}
 
@@ -199,6 +324,15 @@ async function executeContact(
 }
 
 // ─── Company ────────────────────────────────────────────────────────────────
+
+/** Keys on the Company search `additionalFields` that must be sent as string[]. */
+const COMPANY_SEARCH_CSV_KEYS = [
+	'companyCountry',
+	'companyState',
+	'companyZipCode',
+	'companyKeyword',
+	'technologies',
+];
 
 async function executeCompany(
 	this: IExecuteFunctions,
@@ -212,35 +346,35 @@ async function executeCompany(
 			: (this.getNodeParameter('limit', i) as number);
 		const body: IDataObject = {};
 
-		const companyName = this.getNodeParameter(
+		setStringArray(
+			body,
 			'companyName',
-			i,
-			''
-		) as string;
-		if (companyName) body.companyName = companyName;
-
-		const companyDomain = this.getNodeParameter(
+			this.getNodeParameter('companyName', i, '')
+		);
+		setStringArray(
+			body,
 			'companyDomain',
-			i,
-			''
-		) as string;
-		if (companyDomain) body.companyDomain = companyDomain;
-
-		const industry = this.getNodeParameter('industry', i, '') as string;
-		if (industry) body.industry = industry;
+			this.getNodeParameter('companyDomain', i, '')
+		);
+		setStringArray(
+			body,
+			'industry',
+			this.getNodeParameter('industry', i, '')
+		);
 
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
-
-		if (body.technologies) {
-			body.technologies = (body.technologies as string)
-				.split(',')
-				.map((s) => s.trim());
+		const cleaned = cleanObj(additionalFields);
+		for (const key of COMPANY_SEARCH_CSV_KEYS) {
+			if (cleaned[key] !== undefined) {
+				setStringArray(body, key, cleaned[key]);
+				delete cleaned[key];
+			}
 		}
+		Object.assign(body, cleaned);
 
 		return seamlessApiSearchAllItems.call(
 			this,
@@ -252,12 +386,22 @@ async function executeCompany(
 
 	if (operation === 'research') {
 		const body: IDataObject = {};
-		const ids = this.getNodeParameter('searchResultIds', i, '') as string;
-		if (ids) body.searchResultIds = ids.split(',').map((s) => s.trim());
+		setStringArray(
+			body,
+			'searchResultIds',
+			this.getNodeParameter('searchResultIds', i, '')
+		);
 
 		const companies = this.getNodeParameter('companies', i, '[]') as string;
 		const parsed = JSON.parse(companies);
 		if (Array.isArray(parsed) && parsed.length) body.companies = parsed;
+
+		const waitForResults = this.getNodeParameter(
+			'waitForResults',
+			i,
+			false
+		) as boolean;
+		if (waitForResults) body.waitForResults = true;
 
 		return seamlessApiRequest.call(
 			this,
@@ -269,9 +413,24 @@ async function executeCompany(
 
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const startDate = this.getNodeParameter('startDate', i) as string;
-		const endDate = this.getNodeParameter('endDate', i) as string;
-		const qs: IDataObject = { startDate, endDate };
+		const startDate = this.getNodeParameter('startDate', i, '') as string;
+		const endDate = this.getNodeParameter('endDate', i, '') as string;
+		const qs: IDataObject = {};
+		if (startDate) qs.startDate = startDate;
+		if (endDate) qs.endDate = endDate;
+
+		const additionalFields = this.getNodeParameter(
+			'additionalFields',
+			i,
+			{}
+		) as IDataObject;
+		const cleaned = cleanObj(additionalFields);
+		if (cleaned.orgIds !== undefined) {
+			const arr = csvToStringArray(cleaned.orgIds);
+			if (arr.length) qs.orgIds = arr.join(',');
+			delete cleaned.orgIds;
+		}
+		Object.assign(qs, cleaned);
 
 		if (returnAll) {
 			return seamlessApiRequestAllItems.call(
@@ -295,14 +454,13 @@ async function executeCompany(
 
 	if (operation === 'pollResearch') {
 		const requestIds = this.getNodeParameter('requestIds', i) as string;
+		const ids = csvToStringArray(requestIds);
 		return seamlessApiRequest.call(
 			this,
 			'GET',
 			'/companies/research/poll',
 			undefined,
-			{
-				requestIds,
-			}
+			{ requestIds: ids.join(',') }
 		);
 	}
 
@@ -349,7 +507,17 @@ async function executeCampaign(
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'create') {
 		const name = this.getNodeParameter('name', i) as string;
-		return seamlessApiRequest.call(this, 'POST', '/campaigns', { name });
+		const additionalFields = this.getNodeParameter(
+			'additionalFields',
+			i,
+			{}
+		) as IDataObject;
+		const body: IDataObject = { name };
+		if (additionalFields.emailAccountIds) {
+			const ids = csvToNumberArray(additionalFields.emailAccountIds);
+			if (ids.length) body.emailAccountIds = ids;
+		}
+		return seamlessApiRequest.call(this, 'POST', '/campaigns', body);
 	}
 	if (operation === 'get') {
 		const id = this.getNodeParameter('campaignId', i) as number;
@@ -359,8 +527,7 @@ async function executeCampaign(
 		const qs: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) qs.searchText = searchText;
-		const limit = this.getNodeParameter('limit', i, 50) as number;
-		qs.limit = limit;
+		qs.limit = this.getNodeParameter('limit', i, 10) as number;
 		return seamlessApiRequest.call(
 			this,
 			'GET',
@@ -381,9 +548,8 @@ async function executeCampaign(
 		if (updateFields.isPublic !== undefined)
 			body.isPublic = updateFields.isPublic;
 		if (updateFields.emailAccountIds) {
-			body.emailAccountIds = (updateFields.emailAccountIds as string)
-				.split(',')
-				.map((s) => Number(s.trim()));
+			const ids = csvToNumberArray(updateFields.emailAccountIds);
+			if (ids.length) body.emailAccountIds = ids;
 		}
 		return seamlessApiRequest.call(this, 'PUT', `/campaigns/${id}`, body);
 	}
@@ -411,9 +577,9 @@ async function executeCampaign(
 	}
 	if (operation === 'addContacts') {
 		const id = this.getNodeParameter('campaignId', i) as number;
-		const contactIds = (this.getNodeParameter('contactIds', i) as string)
-			.split(',')
-			.map((s) => Number(s.trim()));
+		const contactIds = csvToNumberArray(
+			this.getNodeParameter('contactIds', i)
+		);
 		return seamlessApiRequest.call(
 			this,
 			'POST',
@@ -423,9 +589,9 @@ async function executeCampaign(
 	}
 	if (operation === 'removeContacts') {
 		const id = this.getNodeParameter('campaignId', i) as number;
-		const contactIds = (this.getNodeParameter('contactIds', i) as string)
-			.split(',')
-			.map((s) => Number(s.trim()));
+		const contactIds = csvToNumberArray(
+			this.getNodeParameter('contactIds', i)
+		);
 		return seamlessApiRequest.call(
 			this,
 			'DELETE',
@@ -443,7 +609,7 @@ async function executeCampaign(
 		if (returnAll) {
 			const allItems: IDataObject[] = [];
 			let offset = 0;
-			const batchSize = 100;
+			const batchSize = 50;
 			let hasMore = true;
 			while (hasMore) {
 				qs.limit = batchSize;
@@ -466,8 +632,8 @@ async function executeCampaign(
 			}
 			return allItems;
 		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
-		qs.offset = 0;
+		qs.limit = this.getNodeParameter('limit', i, 25) as number;
+		qs.offset = this.getNodeParameter('offset', i, 0) as number;
 		const response = await seamlessApiRequest.call(
 			this,
 			'GET',
@@ -504,7 +670,12 @@ async function executeCampaignStep(
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		const templateData = unwrapTemplateData(cleaned.templateData);
+		delete cleaned.templateData;
+		dropZeroIds(cleaned, ['templateId']);
+		Object.assign(body, cleaned);
+		if (templateData) body.templateData = templateData;
 		return seamlessApiRequest.call(
 			this,
 			'POST',
@@ -521,16 +692,23 @@ async function executeCampaignStep(
 	}
 	if (operation === 'update') {
 		const stepId = this.getNodeParameter('stepId', i) as number;
+		const dueDay = this.getNodeParameter('dueDay', i) as number;
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
 			{}
 		) as IDataObject;
+		const cleaned = cleanObj(updateFields);
+		const templateData = unwrapTemplateData(cleaned.templateData);
+		delete cleaned.templateData;
+		dropZeroIds(cleaned, ['templateId', 'stepNumber']);
+		const body: IDataObject = { dueDay, ...cleaned };
+		if (templateData) body.templateData = templateData;
 		return seamlessApiRequest.call(
 			this,
 			'PUT',
 			`/campaigns/${campaignId}/steps/${stepId}`,
-			cleanObj(updateFields)
+			body
 		);
 	}
 	if (operation === 'delete') {
@@ -575,7 +753,13 @@ async function executeSavedSearch(
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		if (cleaned.tagIds !== undefined) {
+			const arr = csvToStringArray(cleaned.tagIds);
+			if (arr.length) body.tagIds = arr;
+			delete cleaned.tagIds;
+		}
+		Object.assign(body, cleaned);
 		return seamlessApiRequest.call(this, 'POST', '/saved-searches', body);
 	}
 	if (operation === 'get') {
@@ -609,6 +793,10 @@ async function executeSavedSearch(
 			body.numResultsApproved = updateFields.numResultsApproved;
 		if (updateFields.values)
 			body.values = JSON.parse(updateFields.values as string);
+		if (updateFields.tagIds !== undefined) {
+			const arr = csvToStringArray(updateFields.tagIds);
+			if (arr.length) body.tagIds = arr;
+		}
 		return seamlessApiRequest.call(
 			this,
 			'PUT',
@@ -640,31 +828,39 @@ async function executeTemplate(
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		dropZeroIds(cleaned, ['emailFooterId', 'emailSignatureId']);
+		Object.assign(body, cleaned);
+		if (!body.type) body.type = 'email';
 		return seamlessApiRequest.call(this, 'POST', '/templates', body);
 	}
 	if (operation === 'get') {
 		const id = this.getNodeParameter('templateId', i) as number;
-		return seamlessApiRequest.call(this, 'GET', `/templates/${id}`);
+		const type = this.getNodeParameter('type', i, 'email') as string;
+		return seamlessApiRequest.call(
+			this,
+			'GET',
+			`/templates/${id}`,
+			undefined,
+			{ type }
+		);
 	}
 	if (operation === 'getMany') {
-		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const qs: IDataObject = {};
+		const qs: IDataObject = {
+			page: this.getNodeParameter('page', i, 1) as number,
+			limit: this.getNodeParameter('limit', i, 15) as number,
+		};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) qs.searchText = searchText;
 		const type = this.getNodeParameter('type', i, '') as string;
 		if (type) qs.type = type;
+		const includeStats = this.getNodeParameter(
+			'includeStats',
+			i,
+			false
+		) as boolean;
+		if (includeStats) qs.includeStats = true;
 
-		if (returnAll) {
-			return seamlessApiRequestAllItems.call(
-				this,
-				'GET',
-				'/templates',
-				undefined,
-				qs
-			);
-		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
 		const response = await seamlessApiRequest.call(
 			this,
 			'GET',
@@ -676,21 +872,30 @@ async function executeTemplate(
 	}
 	if (operation === 'update') {
 		const id = this.getNodeParameter('templateId', i) as number;
+		const type = this.getNodeParameter('type', i, 'email') as string;
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
 			{}
 		) as IDataObject;
+		const body: IDataObject = { type, ...cleanObj(updateFields) };
 		return seamlessApiRequest.call(
 			this,
 			'PUT',
 			`/templates/${id}`,
-			cleanObj(updateFields)
+			body
 		);
 	}
 	if (operation === 'delete') {
 		const id = this.getNodeParameter('templateId', i) as number;
-		await seamlessApiRequest.call(this, 'DELETE', `/templates/${id}`);
+		const type = this.getNodeParameter('type', i, 'email') as string;
+		await seamlessApiRequest.call(
+			this,
+			'DELETE',
+			`/templates/${id}`,
+			undefined,
+			{ type }
+		);
 		return { deleted: true };
 	}
 	return {};
@@ -714,7 +919,9 @@ async function executeEmail(
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		dropZeroIds(cleaned, ['templateId']);
+		Object.assign(body, cleaned);
 		return seamlessApiRequest.call(this, 'POST', '/emails', body);
 	}
 	if (operation === 'getDraft') {
@@ -758,33 +965,47 @@ async function executeEmail(
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		dropZeroIds(cleaned, ['templateId']);
+		Object.assign(body, cleaned);
 		return seamlessApiRequest.call(this, 'POST', '/emails/send', body);
 	}
 	if (operation === 'sendBulk') {
 		const body: IDataObject = {
 			from: this.getNodeParameter('from', i) as string,
 		};
-		const additionalFields = this.getNodeParameter(
-			'additionalFields',
+		const bulkFields = this.getNodeParameter(
+			'bulkFields',
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
-		const filters = this.getNodeParameter('filters', i, '{}') as string;
-		if (filters && filters !== '{}') body.filters = JSON.parse(filters);
+		const cleanedBulk = cleanObj(bulkFields);
+		dropZeroIds(cleanedBulk, ['templateId']);
+		Object.assign(body, cleanedBulk);
+
+		const filtersRaw = this.getNodeParameter(
+			'filters',
+			i,
+			{}
+		) as IDataObject;
+		const normalized = normalizeBulkFilters(filtersRaw);
+		if (Object.keys(normalized).length > 0) body.filters = normalized;
 		return seamlessApiRequest.call(this, 'POST', '/emails/send-bulk', body);
 	}
 	if (operation === 'preview') {
 		const body: IDataObject = {
 			to: this.getNodeParameter('to', i) as string,
+			subject: this.getNodeParameter('subject', i) as string,
+			body: this.getNodeParameter('body', i) as string,
 		};
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		dropZeroIds(cleaned, ['templateId']);
+		Object.assign(body, cleaned);
 		return seamlessApiRequest.call(this, 'POST', '/emails/preview', body);
 	}
 	return {};
@@ -808,7 +1029,9 @@ async function executeTask(
 			i,
 			{}
 		) as IDataObject;
-		Object.assign(body, cleanObj(additionalFields));
+		const cleaned = cleanObj(additionalFields);
+		dropZeroIds(cleaned, ['templateId']);
+		Object.assign(body, cleaned);
 		return seamlessApiRequest.call(this, 'POST', '/tasks', body);
 	}
 	if (operation === 'get') {
@@ -824,7 +1047,7 @@ async function executeTask(
 		if (returnAll) {
 			const allItems: IDataObject[] = [];
 			let offset = 0;
-			const batchSize = 100;
+			const batchSize = 50;
 			let hasMore = true;
 			while (hasMore) {
 				qs.limit = batchSize;
@@ -847,8 +1070,8 @@ async function executeTask(
 			}
 			return allItems;
 		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
-		qs.offset = 0;
+		qs.limit = this.getNodeParameter('limit', i, 25) as number;
+		if (qs.offset === undefined) qs.offset = 0;
 		const response = await seamlessApiRequest.call(
 			this,
 			'GET',
@@ -882,80 +1105,6 @@ async function executeTask(
 		const action = this.getNodeParameter('action', i) as string;
 		return seamlessApiRequest.call(this, 'POST', `/tasks/${id}/actions`, {
 			action,
-		});
-	}
-	return {};
-}
-
-// ─── Intent ─────────────────────────────────────────────────────────────────
-
-async function executeIntent(
-	this: IExecuteFunctions,
-	operation: string,
-	i: number
-): Promise<IDataObject | IDataObject[]> {
-	if (operation === 'getCategories') {
-		return seamlessApiRequest.call(this, 'GET', '/intent/categories');
-	}
-	if (operation === 'searchTopics') {
-		const qs: IDataObject = {};
-		const category = this.getNodeParameter('category', i, '') as string;
-		if (category) qs.category = category;
-		const q = this.getNodeParameter('q', i, '') as string;
-		if (q) qs.q = q;
-		return seamlessApiRequest.call(
-			this,
-			'GET',
-			'/intent/topics',
-			undefined,
-			qs
-		);
-	}
-	if (operation === 'searchCompanies') {
-		const topics = (this.getNodeParameter('topics', i) as string)
-			.split(',')
-			.map((s) => s.trim());
-		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-
-		if (returnAll) {
-			const allItems: IDataObject[] = [];
-			let page = 1;
-			const batchSize = 100;
-			let hasMore = true;
-			while (hasMore) {
-				const body: IDataObject = { topics, page, limit: batchSize };
-				const resp = await seamlessApiRequest.call(
-					this,
-					'POST',
-					'/intent/search',
-					body
-				);
-				const items = (resp.data || resp) as IDataObject[];
-				if (Array.isArray(items) && items.length > 0) {
-					allItems.push(...items);
-					page++;
-					hasMore = items.length === batchSize;
-				} else {
-					hasMore = false;
-				}
-			}
-			return allItems;
-		}
-
-		const body: IDataObject = {
-			topics,
-			limit: this.getNodeParameter('limit', i) as number,
-		};
-		return seamlessApiRequest.call(this, 'POST', '/intent/search', body);
-	}
-	if (operation === 'getScore') {
-		const domain = this.getNodeParameter('domain', i) as string;
-		const topics = (this.getNodeParameter('topics', i) as string)
-			.split(',')
-			.map((s) => s.trim());
-		return seamlessApiRequest.call(this, 'POST', '/intent/score', {
-			domain,
-			topics,
 		});
 	}
 	return {};
@@ -1005,7 +1154,7 @@ async function executeActivity(
 		if (returnAll) {
 			const allItems: IDataObject[] = [];
 			let offset = 0;
-			const limit = 100;
+			const limit = 50;
 			let hasMore = true;
 			while (hasMore) {
 				qs.limit = limit;
@@ -1028,8 +1177,8 @@ async function executeActivity(
 			}
 			return allItems;
 		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
-		qs.offset = 0;
+		qs.limit = this.getNodeParameter('limit', i, 25) as number;
+		if (qs.offset === undefined) qs.offset = 0;
 		const response = await seamlessApiRequest.call(
 			this,
 			'GET',
@@ -1064,11 +1213,36 @@ async function executeEmailAccount(
 				qs
 			);
 		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
+		qs.limit = this.getNodeParameter('limit', i, 25) as number;
+		qs.page = this.getNodeParameter('page', i, 1) as number;
 		const response = await seamlessApiRequest.call(
 			this,
 			'GET',
 			'/email-accounts',
+			undefined,
+			qs
+		);
+		return (response.data || response) as IDataObject[];
+	}
+	return {};
+}
+
+// ─── Email Footer ───────────────────────────────────────────────────────────
+
+async function executeEmailFooter(
+	this: IExecuteFunctions,
+	operation: string,
+	i: number
+): Promise<IDataObject | IDataObject[]> {
+	if (operation === 'getMany') {
+		const qs: IDataObject = {
+			limit: this.getNodeParameter('limit', i, 25) as number,
+			page: this.getNodeParameter('page', i, 1) as number,
+		};
+		const response = await seamlessApiRequest.call(
+			this,
+			'GET',
+			'/email-footers',
 			undefined,
 			qs
 		);
@@ -1115,9 +1289,8 @@ class Seamless implements INodeType {
 					{ name: 'Credits', value: 'credits' },
 					{ name: 'Email', value: 'email' },
 					{ name: 'Email Account', value: 'emailAccount' },
-					{ name: 'Email Footer', value: 'emailFooter' },
-					{ name: 'Intent', value: 'intent' },
-					{ name: 'List', value: 'list' },
+				{ name: 'Email Footer', value: 'emailFooter' },
+				{ name: 'List', value: 'list' },
 					{ name: 'Saved Search', value: 'savedSearch' },
 					{ name: 'Task', value: 'task' },
 					{ name: 'Template', value: 'template' },
@@ -1134,7 +1307,6 @@ class Seamless implements INodeType {
 			...templateOperations,
 			...emailOperations,
 			...taskOperations,
-			...intentOperations,
 			...callOperations,
 			...activityOperations,
 			...emailAccountOperations,
@@ -1150,7 +1322,6 @@ class Seamless implements INodeType {
 			...templateFields,
 			...emailFields,
 			...taskFields,
-			...intentFields,
 			...callFields,
 			...activityFields,
 			...emailAccountFields,
@@ -1227,8 +1398,6 @@ class Seamless implements INodeType {
 					responseData = await executeEmail.call(this, operation, i);
 				} else if (resource === 'task') {
 					responseData = await executeTask.call(this, operation, i);
-				} else if (resource === 'intent') {
-					responseData = await executeIntent.call(this, operation, i);
 				} else if (resource === 'call') {
 					responseData = await executeCall.call(this, operation, i);
 				} else if (resource === 'activity') {
@@ -1244,10 +1413,10 @@ class Seamless implements INodeType {
 						i
 					);
 				} else if (resource === 'emailFooter') {
-					responseData = await seamlessApiRequest.call(
+					responseData = await executeEmailFooter.call(
 						this,
-						'GET',
-						'/email-footers'
+						operation,
+						i
 					);
 				}
 

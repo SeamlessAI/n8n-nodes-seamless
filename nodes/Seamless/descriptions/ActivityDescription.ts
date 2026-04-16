@@ -35,9 +35,9 @@ const activityFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: { minValue: 1 },
+		default: 25,
+		description: 'Max number of results to return (max 50)',
+		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
 			show: {
 				resource: ['activity'],
@@ -67,6 +67,14 @@ const activityFields: INodeProperties[] = [
 				name: 'contactId',
 				type: 'number',
 				default: 0,
+			},
+			{
+				displayName: 'Offset',
+				name: 'offset',
+				type: 'number',
+				default: 0,
+				description: 'Pagination offset (default 0)',
+				typeOptions: { minValue: 0 },
 			},
 			{
 				displayName: 'Search Text',

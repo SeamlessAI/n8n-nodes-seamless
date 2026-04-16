@@ -45,7 +45,8 @@ const companyFields: INodeProperties[] = [
 		name: 'companyName',
 		type: 'string',
 		default: '',
-		description: 'Filter by company name',
+		description:
+			'Filter by company name. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['search'] },
 		},
@@ -55,7 +56,8 @@ const companyFields: INodeProperties[] = [
 		name: 'companyDomain',
 		type: 'string',
 		default: '',
-		description: 'Filter by company domain',
+		description:
+			'Filter by company domain. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['search'] },
 		},
@@ -65,7 +67,8 @@ const companyFields: INodeProperties[] = [
 		name: 'industry',
 		type: 'string',
 		default: '',
-		description: 'Filter by industry',
+		description:
+			'Filter by industry. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['search'] },
 		},
@@ -81,10 +84,18 @@ const companyFields: INodeProperties[] = [
 		},
 		options: [
 			{
+				displayName: 'Company Country',
+				name: 'companyCountry',
+				type: 'string',
+				default: '',
+				description: 'Comma-separated values to provide multiple',
+			},
+			{
 				displayName: 'Company Keyword',
 				name: 'companyKeyword',
 				type: 'string',
 				default: '',
+				description: 'Comma-separated values to provide multiple',
 			},
 			{
 				displayName: 'Company Name Search Type',
@@ -139,24 +150,14 @@ const companyFields: INodeProperties[] = [
 				name: 'companyState',
 				type: 'string',
 				default: '',
-			},
-			{
-				displayName: 'Company Country',
-				name: 'companyCountry',
-				type: 'string',
-				default: '',
+				description: 'Comma-separated values to provide multiple',
 			},
 			{
 				displayName: 'Company Zip Code',
 				name: 'companyZipCode',
 				type: 'string',
 				default: '',
-			},
-			{
-				displayName: 'Department',
-				name: 'department',
-				type: 'string',
-				default: '',
+				description: 'Comma-separated values to provide multiple',
 			},
 			{
 				displayName: 'Founded On',
@@ -169,6 +170,14 @@ const companyFields: INodeProperties[] = [
 					{ name: 'Last 4-10 Years', value: 'Last 4-10 Years' },
 					{ name: 'Less Than 1 Year', value: 'Less than 1 Year' },
 				],
+			},
+			{
+				displayName: 'Next Token',
+				name: 'nextToken',
+				type: 'string',
+				default: '',
+				description:
+					'Pagination token from a previous search response',
 			},
 			{
 				displayName: 'Technologies',
@@ -209,14 +218,25 @@ const companyFields: INodeProperties[] = [
 			show: { resource: ['company'], operation: ['research'] },
 		},
 	},
+	{
+		displayName: 'Wait for Results',
+		name: 'waitForResults',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to auto-poll for up to 30s for results. When false, returns requestIds immediately.',
+		displayOptions: {
+			show: { resource: ['company'], operation: ['research'] },
+		},
+	},
 	// ------ Get Many ------
 	{
 		displayName: 'Start Date',
 		name: 'startDate',
 		type: 'dateTime',
 		default: '',
-		required: true,
-		description: 'Start of the lookback period (ISO 8601)',
+		description:
+			'Start of the lookback period (ISO 8601). Defaults to 30 days ago.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['getMany'] },
 		},
@@ -226,11 +246,37 @@ const companyFields: INodeProperties[] = [
 		name: 'endDate',
 		type: 'dateTime',
 		default: '',
-		required: true,
-		description: 'End of the lookback period (ISO 8601)',
+		description: 'End of the lookback period (ISO 8601). Defaults to now.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['getMany'] },
 		},
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: {
+			show: { resource: ['company'], operation: ['getMany'] },
+		},
+		options: [
+			{
+				displayName: 'Org IDs',
+				name: 'orgIds',
+				type: 'string',
+				default: '',
+				description: 'Comma-separated org IDs to filter by',
+			},
+			{
+				displayName: 'Page',
+				name: 'page',
+				type: 'number',
+				default: 1,
+				typeOptions: { minValue: 1 },
+				description: 'Page number (default 1)',
+			},
+		],
 	},
 	// ------ Poll Research ------
 	{
@@ -266,7 +312,22 @@ const companyFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['company'],
-				operation: ['search', 'getMany'],
+				operation: ['search'],
+				returnAll: [false],
+			},
+		},
+	},
+	{
+		displayName: 'Limit',
+		name: 'limit',
+		type: 'number',
+		default: 500,
+		description: 'Max number of results to return (max 500)',
+		typeOptions: { minValue: 1, maxValue: 500 },
+		displayOptions: {
+			show: {
+				resource: ['company'],
+				operation: ['getMany'],
 				returnAll: [false],
 			},
 		},

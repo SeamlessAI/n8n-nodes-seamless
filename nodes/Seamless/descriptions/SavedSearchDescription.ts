@@ -82,7 +82,6 @@ const savedSearchFields: INodeProperties[] = [
 		options: [
 			{ name: 'Companies', value: 'companies' },
 			{ name: 'Contacts', value: 'contacts' },
-			{ name: 'Intent', value: 'intent' },
 		],
 	},
 	{
@@ -125,6 +124,14 @@ const savedSearchFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 			},
+			{
+				displayName: 'Tag IDs',
+				name: 'tagIds',
+				type: 'string',
+				default: '',
+				description:
+					'Comma-separated list IDs to associate with this saved search',
+			},
 		],
 	},
 	// ------ Update ------
@@ -164,6 +171,14 @@ const savedSearchFields: INodeProperties[] = [
 				default: '',
 			},
 			{
+				displayName: 'Tag IDs',
+				name: 'tagIds',
+				type: 'string',
+				default: '',
+				description:
+					'Comma-separated list IDs to associate with this saved search',
+			},
+			{
 				displayName: 'Values (JSON)',
 				name: 'values',
 				type: 'json',
@@ -185,7 +200,6 @@ const savedSearchFields: INodeProperties[] = [
 			{ name: 'All', value: '' },
 			{ name: 'Companies', value: 'companies' },
 			{ name: 'Contacts', value: 'contacts' },
-			{ name: 'Intent', value: 'intent' },
 		],
 	},
 ];

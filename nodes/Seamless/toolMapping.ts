@@ -77,12 +77,6 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 		delete: 'delete_task',
 		executeAction: 'execute_task_action',
 	},
-	intent: {
-		getCategories: 'get_intent_categories',
-		searchTopics: 'search_intent_topics',
-		searchCompanies: 'search_intent',
-		getScore: 'get_intent_score',
-	},
 	call: {
 		log: 'log_call',
 		getDispositions: 'list_call_dispositions',

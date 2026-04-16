@@ -1,5 +1,32 @@
 import { type INodeProperties } from 'n8n-workflow';
 
+const TASK_STATUS_OPTIONS = [
+	{ name: 'Scheduled', value: 'scheduled' },
+	{ name: 'In Progress', value: 'in-progress' },
+	{ name: 'Completed', value: 'completed' },
+	{ name: 'Paused', value: 'paused' },
+	{ name: 'Errored', value: 'errored' },
+	{ name: 'Cancelled', value: 'cancelled' },
+	{ name: 'Skipped', value: 'skipped' },
+];
+
+const LIST_TASK_TYPE_OPTIONS = [
+	{ name: 'Manual Email', value: 'manual-email' },
+	{ name: 'Auto Email', value: 'auto-email' },
+	{ name: 'Call', value: 'call' },
+	{ name: 'LinkedIn', value: 'linkedIn' },
+	{ name: 'LinkedIn Message', value: 'linkedin-message' },
+	{ name: 'LinkedIn Connect Request', value: 'linkedin-connect-request' },
+	{ name: 'Custom', value: 'custom' },
+];
+
+const CREATE_TASK_TYPE_OPTIONS = [
+	{ name: 'Manual Email', value: 'manual-email' },
+	{ name: 'Call', value: 'call' },
+	{ name: 'Action Item', value: 'action-item' },
+	{ name: 'LinkedIn', value: 'linkedin' },
+];
+
 const taskOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -78,10 +105,11 @@ const taskFields: INodeProperties[] = [
 	{
 		displayName: 'Task Type',
 		name: 'taskType',
-		type: 'string',
-		default: '',
+		type: 'options',
+		default: 'manual-email',
 		required: true,
-		description: 'The type of the task (e.g. call, email)',
+		description: 'The type of the task',
+		options: CREATE_TASK_TYPE_OPTIONS,
 		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
 	},
 	{
@@ -90,7 +118,8 @@ const taskFields: INodeProperties[] = [
 		type: 'number',
 		default: 0,
 		required: true,
-		description: 'The contact associated with this task',
+		description:
+			'The saved contact ID to associate with (from get_my_contacts)',
 		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
 	},
 	{
@@ -116,14 +145,21 @@ const taskFields: INodeProperties[] = [
 			{
 				displayName: 'Priority',
 				name: 'priority',
-				type: 'string',
-				default: '',
+				type: 'options',
+				default: 0,
+				description: 'Priority level',
+				options: [
+					{ name: 'Normal', value: 0 },
+					{ name: 'High', value: 1 },
+					{ name: 'Urgent', value: 2 },
+				],
 			},
 			{
 				displayName: 'Template ID',
 				name: 'templateId',
 				type: 'number',
 				default: 0,
+				description: 'Template ID for email tasks',
 			},
 		],
 	},
@@ -157,8 +193,13 @@ const taskFields: INodeProperties[] = [
 			{
 				displayName: 'Priority',
 				name: 'priority',
-				type: 'string',
-				default: '',
+				type: 'options',
+				default: 0,
+				options: [
+					{ name: 'Normal', value: 0 },
+					{ name: 'High', value: 1 },
+					{ name: 'Urgent', value: 2 },
+				],
 			},
 			{
 				displayName: 'Status',
@@ -206,9 +247,9 @@ const taskFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: { minValue: 1 },
+		default: 25,
+		description: 'Max number of results to return (max 50)',
+		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
 			show: {
 				resource: ['task'],
@@ -232,30 +273,51 @@ const taskFields: INodeProperties[] = [
 				name: 'campaignIdentifier',
 				type: 'string',
 				default: '',
+				description:
+					'Filter tasks by campaign identifier (slug, not numeric ID)',
+			},
+			{
+				displayName: 'Offset',
+				name: 'offset',
+				type: 'number',
+				default: 0,
+				typeOptions: { minValue: 0 },
+				description:
+					'Pagination offset (only used when Return All is off)',
 			},
 			{
 				displayName: 'Sort Column',
 				name: 'sortColumn',
 				type: 'string',
-				default: '',
+				default: 'createdAt',
+				description: 'Column to sort by (default "createdAt")',
 			},
 			{
 				displayName: 'Sort Order',
 				name: 'sortOrder',
-				type: 'string',
-				default: '',
+				type: 'options',
+				default: 'desc',
+				options: [
+					{ name: 'Ascending', value: 'asc' },
+					{ name: 'Descending', value: 'desc' },
+				],
 			},
 			{
 				displayName: 'Status',
 				name: 'status',
-				type: 'string',
+				type: 'options',
 				default: '',
+				options: [{ name: 'Any', value: '' }, ...TASK_STATUS_OPTIONS],
 			},
 			{
 				displayName: 'Task Type',
 				name: 'taskType',
-				type: 'string',
+				type: 'options',
 				default: '',
+				options: [
+					{ name: 'Any', value: '' },
+					...LIST_TASK_TYPE_OPTIONS,
+				],
 			},
 		],
 	},

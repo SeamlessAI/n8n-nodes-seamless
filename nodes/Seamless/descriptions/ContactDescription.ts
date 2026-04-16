@@ -45,7 +45,8 @@ const contactFields: INodeProperties[] = [
 		name: 'companyName',
 		type: 'string',
 		default: '',
-		description: 'Filter by company name',
+		description:
+			'Filter by company name. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
@@ -55,7 +56,8 @@ const contactFields: INodeProperties[] = [
 		name: 'jobTitle',
 		type: 'string',
 		default: '',
-		description: 'Filter by job title',
+		description:
+			'Filter by job title. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
@@ -108,7 +110,8 @@ const contactFields: INodeProperties[] = [
 		name: 'companyDomain',
 		type: 'string',
 		default: '',
-		description: 'Filter by company domain',
+		description:
+			'Filter by company domain. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
@@ -118,17 +121,19 @@ const contactFields: INodeProperties[] = [
 		name: 'industry',
 		type: 'string',
 		default: '',
-		description: 'Filter by industry',
+		description:
+			'Filter by industry. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
 	},
 	{
 		displayName: 'Full Name',
-		name: 'fullName',
+		name: 'fullname',
 		type: 'string',
 		default: '',
-		description: 'Filter by contact full name',
+		description:
+			'Filter by contact full name. Comma-separated values to provide multiple.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
@@ -208,24 +213,44 @@ const contactFields: INodeProperties[] = [
 				name: 'contactCountry',
 				type: 'string',
 				default: '',
+				description: 'Comma-separated values to provide multiple',
 			},
 			{
 				displayName: 'Contact Keyword',
 				name: 'contactKeyword',
 				type: 'string',
 				default: '',
+				description: 'Comma-separated values to provide multiple',
 			},
 			{
 				displayName: 'Contact State',
 				name: 'contactState',
 				type: 'string',
 				default: '',
+				description: 'Comma-separated values to provide multiple',
 			},
 			{
 				displayName: 'Contact Zip Code',
 				name: 'contactZipCode',
 				type: 'string',
 				default: '',
+				description: 'Comma-separated values to provide multiple',
+			},
+			{
+				displayName: 'Last Modified After',
+				name: 'lastModifiedAfter',
+				type: 'dateTime',
+				default: '',
+				description:
+					'Only return contacts modified after this date (ISO 8601)',
+			},
+			{
+				displayName: 'Last Modified Before',
+				name: 'lastModifiedBefore',
+				type: 'dateTime',
+				default: '',
+				description:
+					'Only return contacts modified before this date (ISO 8601)',
 			},
 			{
 				displayName: 'Location Type',
@@ -238,6 +263,14 @@ const contactFields: INodeProperties[] = [
 					{ name: 'Company', value: 'company' },
 					{ name: 'Contact', value: 'contact' },
 				],
+			},
+			{
+				displayName: 'Next Token',
+				name: 'nextToken',
+				type: 'string',
+				default: '',
+				description:
+					'Pagination token from a previous search response',
 			},
 			{
 				displayName: 'Technologies',
@@ -273,7 +306,7 @@ const contactFields: INodeProperties[] = [
 		type: 'json',
 		default: '[]',
 		description:
-			'JSON array of contacts to research. Each object needs contactName+companyName, contactName+domain, email, or liProfileUrl.',
+			'JSON array of contacts to research. Each object needs contactName+companyName, contactName+domain, email, liProfileUrl, liSalesNavUrl, or liRecruiterUrl.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['research'] },
 		},
@@ -288,14 +321,25 @@ const contactFields: INodeProperties[] = [
 			show: { resource: ['contact'], operation: ['research'] },
 		},
 	},
+	{
+		displayName: 'Wait for Results',
+		name: 'waitForResults',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to auto-poll for up to 30s for results. When false, returns requestIds immediately.',
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['research'] },
+		},
+	},
 	// ------ Get Many ------
 	{
 		displayName: 'Start Date',
 		name: 'startDate',
 		type: 'dateTime',
 		default: '',
-		required: true,
-		description: 'Start of the lookback period (ISO 8601)',
+		description:
+			'Start of the lookback period (ISO 8601). Defaults to 30 days ago.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['getMany'] },
 		},
@@ -305,11 +349,37 @@ const contactFields: INodeProperties[] = [
 		name: 'endDate',
 		type: 'dateTime',
 		default: '',
-		required: true,
-		description: 'End of the lookback period (ISO 8601)',
+		description: 'End of the lookback period (ISO 8601). Defaults to now.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['getMany'] },
 		},
+	},
+	{
+		displayName: 'Additional Fields',
+		name: 'additionalFields',
+		type: 'collection',
+		placeholder: 'Add Field',
+		default: {},
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['getMany'] },
+		},
+		options: [
+			{
+				displayName: 'Org IDs',
+				name: 'orgIds',
+				type: 'string',
+				default: '',
+				description: 'Comma-separated org IDs to filter by',
+			},
+			{
+				displayName: 'Page',
+				name: 'page',
+				type: 'number',
+				default: 1,
+				typeOptions: { minValue: 1 },
+				description: 'Page number (default 1)',
+			},
+		],
 	},
 	// ------ Poll Research ------
 	{
@@ -345,7 +415,22 @@ const contactFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['contact'],
-				operation: ['search', 'getMany'],
+				operation: ['search'],
+				returnAll: [false],
+			},
+		},
+	},
+	{
+		displayName: 'Limit',
+		name: 'limit',
+		type: 'number',
+		default: 500,
+		description: 'Max number of results to return (max 500)',
+		typeOptions: { minValue: 1, maxValue: 500 },
+		displayOptions: {
+			show: {
+				resource: ['contact'],
+				operation: ['getMany'],
 				returnAll: [false],
 			},
 		},

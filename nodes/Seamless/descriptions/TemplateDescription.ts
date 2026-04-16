@@ -1,5 +1,13 @@
 import { type INodeProperties } from 'n8n-workflow';
 
+const TEMPLATE_TYPE_OPTIONS = [
+	{ name: 'Call', value: 'call' },
+	{ name: 'Custom', value: 'custom' },
+	{ name: 'Email', value: 'email' },
+	{ name: 'LinkedIn Connect Request', value: 'linkedin-connect-request' },
+	{ name: 'LinkedIn Message', value: 'linkedin-message' },
+];
+
 const templateOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -58,6 +66,20 @@ const templateFields: INodeProperties[] = [
 			},
 		},
 	},
+	{
+		displayName: 'Type',
+		name: 'type',
+		type: 'options',
+		default: 'email',
+		description: 'The type of the template',
+		options: TEMPLATE_TYPE_OPTIONS,
+		displayOptions: {
+			show: {
+				resource: ['template'],
+				operation: ['get', 'update', 'delete'],
+			},
+		},
+	},
 	// ------ Create ------
 	{
 		displayName: 'Name',
@@ -86,6 +108,20 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				typeOptions: { rows: 5 },
+				description:
+					'Email body HTML. Supports template variables like {first_name}, {company}.',
+			},
+			{
+				displayName: 'Content Category',
+				name: 'contentCategory',
+				type: 'options',
+				default: 'static',
+				description:
+					'Content category: "static" for standard templates, "ai_prompt" for AI-generated',
+				options: [
+					{ name: 'Static', value: 'static' },
+					{ name: 'AI Prompt', value: 'ai_prompt' },
+				],
 			},
 			{
 				displayName: 'Email Footer ID',
@@ -94,16 +130,25 @@ const templateFields: INodeProperties[] = [
 				default: 0,
 			},
 			{
+				displayName: 'Email Signature ID',
+				name: 'emailSignatureId',
+				type: 'number',
+				default: 0,
+			},
+			{
 				displayName: 'Subject',
 				name: 'subject',
 				type: 'string',
 				default: '',
+				description:
+					'Email subject. Supports template variables like {first_name}, {company}.',
 			},
 			{
 				displayName: 'Type',
 				name: 'type',
-				type: 'string',
-				default: '',
+				type: 'options',
+				default: 'email',
+				options: TEMPLATE_TYPE_OPTIONS,
 			},
 		],
 	},
@@ -126,6 +171,16 @@ const templateFields: INodeProperties[] = [
 				typeOptions: { rows: 5 },
 			},
 			{
+				displayName: 'Content Category',
+				name: 'contentCategory',
+				type: 'options',
+				default: 'static',
+				options: [
+					{ name: 'Static', value: 'static' },
+					{ name: 'AI Prompt', value: 'ai_prompt' },
+				],
+			},
+			{
 				displayName: 'Name',
 				name: 'name',
 				type: 'string',
@@ -137,22 +192,16 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 			},
-			{
-				displayName: 'Type',
-				name: 'type',
-				type: 'string',
-				default: '',
-			},
 		],
 	},
 	// ------ Get Many ------
 	{
-		displayName: 'Return All',
-		name: 'returnAll',
-		type: 'boolean',
-		default: false,
-		description:
-			'Whether to return all results or only up to a given limit',
+		displayName: 'Page',
+		name: 'page',
+		type: 'number',
+		default: 1,
+		description: 'Page number (default 1)',
+		typeOptions: { minValue: 1 },
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },
 		},
@@ -161,15 +210,11 @@ const templateFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 50,
-		description: 'Max number of results to return',
-		typeOptions: { minValue: 1 },
+		default: 15,
+		description: 'Max number of results to return (max 50)',
+		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
-			show: {
-				resource: ['template'],
-				operation: ['getMany'],
-				returnAll: [false],
-			},
+			show: { resource: ['template'], operation: ['getMany'] },
 		},
 	},
 	{
@@ -185,9 +230,20 @@ const templateFields: INodeProperties[] = [
 	{
 		displayName: 'Type',
 		name: 'type',
-		type: 'string',
+		type: 'options',
 		default: '',
 		description: 'Filter templates by type',
+		options: [{ name: 'All', value: '' }, ...TEMPLATE_TYPE_OPTIONS],
+		displayOptions: {
+			show: { resource: ['template'], operation: ['getMany'] },
+		},
+	},
+	{
+		displayName: 'Include Stats',
+		name: 'includeStats',
+		type: 'boolean',
+		default: false,
+		description: 'Whether to include engagement statistics in results',
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },
 		},

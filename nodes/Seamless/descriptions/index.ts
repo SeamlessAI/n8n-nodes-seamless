@@ -17,7 +17,6 @@ export {
 	emailFooterOperations,
 	emailFooterFields,
 } from './EmailFooterDescription';
-export { intentOperations, intentFields } from './IntentDescription';
 export { listOperations, listFields } from './ListDescription';
 export {
 	savedSearchOperations,
