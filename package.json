@@ -22,7 +22,8 @@
 		"dev": "n8n-node dev",
 		"lint": "eslint && n8n-node lint",
 		"lint:fix": "eslint --fix && n8n-node lint --fix",
-		"precommit": "lint-staged"
+		"precommit": "lint-staged",
+		"release": "n8n-node release"
 	},
 	"lint-staged": {
 		"*.ts": [
