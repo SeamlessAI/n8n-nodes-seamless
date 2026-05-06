@@ -11,8 +11,23 @@ import {
 } from 'n8n-workflow';
 
 /**
+ * Determine which credential type is active based on the `authentication` parameter.
+ */
+function getCredentialType(
+	ctx: IExecuteFunctions | IPollFunctions | ILoadOptionsFunctions,
+): string {
+	try {
+		const auth = ctx.getNodeParameter('authentication', 0) as string;
+		return auth === 'oAuth2' ? 'seamlessOAuth2Api' : 'seamlessApi';
+	} catch {
+		return 'seamlessApi';
+	}
+}
+
+/**
  * Make an authenticated request to the Seamless REST v2 API.
  * Derives the REST base URL from the MCP credential URL by stripping `/mcp`.
+ * Supports both API Key and OAuth2 credentials.
  */
 async function seamlessApiRequest(
 	this: IExecuteFunctions | IPollFunctions | ILoadOptionsFunctions,
@@ -21,7 +36,8 @@ async function seamlessApiRequest(
 	body?: IDataObject,
 	qs?: IDataObject
 ): Promise<IDataObject> {
-	const credentials = await this.getCredentials('seamlessApi');
+	const credentialType = getCredentialType(this);
+	const credentials = await this.getCredentials(credentialType);
 	const baseUrl = String(
 		credentials.baseUrl || 'https://mcp.seamless.ai/mcp'
 	);
@@ -30,7 +46,6 @@ async function seamlessApiRequest(
 	const options: IHttpRequestOptions = {
 		method,
 		url: `${apiBase}/api/client/v2${endpoint}`,
-		headers: { Token: String(credentials.apiKey) },
 		qs,
 	};
 
@@ -38,6 +53,15 @@ async function seamlessApiRequest(
 		options.body = body;
 	}
 
+	if (credentialType === 'seamlessOAuth2Api') {
+		return (await this.helpers.httpRequestWithAuthentication.call(
+			this as unknown as IExecuteFunctions,
+			'seamlessOAuth2Api',
+			options,
+		)) as IDataObject;
+	}
+
+	options.headers = { Token: String(credentials.apiKey) };
 	return (await this.helpers.httpRequest(options)) as IDataObject;
 }
 

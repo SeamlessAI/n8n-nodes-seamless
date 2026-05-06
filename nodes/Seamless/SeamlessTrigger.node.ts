@@ -26,9 +26,25 @@ export class SeamlessTrigger implements INodeType {
 			{
 				name: 'seamlessApi',
 				required: true,
+				displayOptions: { show: { authentication: ['apiKey'] } },
+			},
+			{
+				name: 'seamlessOAuth2Api',
+				required: true,
+				displayOptions: { show: { authentication: ['oAuth2'] } },
 			},
 		],
 		properties: [
+			{
+				displayName: 'Authentication',
+				name: 'authentication',
+				type: 'options',
+				options: [
+					{ name: 'OAuth2', value: 'oAuth2' },
+					{ name: 'API Key', value: 'apiKey' },
+				],
+				default: 'oAuth2',
+			},
 			{
 				displayName: 'Trigger On',
 				name: 'triggerOn',

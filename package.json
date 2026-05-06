@@ -1,6 +1,6 @@
 {
 	"name": "@seamless-oss/n8n-nodes-seamless",
-	"version": "0.1.0",
+	"version": "0.2.0",
 	"description": "n8n community nodes for Seamless.ai — REST API and trigger",
 	"license": "MIT",
 	"type": "commonjs",
@@ -35,7 +35,8 @@
 	"n8n": {
 		"n8nNodesApiVersion": "1",
 		"credentials": [
-			"dist/credentials/SeamlessApi.credentials.js"
+			"dist/credentials/SeamlessApi.credentials.js",
+			"dist/credentials/SeamlessOAuth2Api.credentials.js"
 		],
 		"nodes": [
 			"dist/nodes/Seamless/Seamless.node.js",
