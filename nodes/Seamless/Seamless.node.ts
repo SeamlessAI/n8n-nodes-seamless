@@ -14,9 +14,10 @@ import {
 } from 'n8n-workflow';
 
 import {
-	seamlessApiRequest,
-	seamlessApiRequestAllItems,
-	seamlessApiSearchAllItems,
+	seamlessMcpCall,
+	seamlessMcpCallAllPages,
+	seamlessMcpCallAllOffsets,
+	seamlessMcpSearchAll,
 	testSeamlessApiCredential,
 } from './GenericFunctions';
 
@@ -309,11 +310,11 @@ async function executeContact(
 		}
 		Object.assign(body, cleaned);
 
-		return seamlessApiSearchAllItems.call(
+		return seamlessMcpSearchAll.call(
 			this,
-			'/search/contacts',
+			'search_contacts',
 			body,
-			limit
+			limit,
 		);
 	}
 
@@ -322,7 +323,7 @@ async function executeContact(
 		setStringArray(
 			body,
 			'searchResultIds',
-			this.getNodeParameter('searchResultIds', i, '')
+			this.getNodeParameter('searchResultIds', i, ''),
 		);
 
 		const contacts = this.getNodeParameter('contacts', i, '[]') as string;
@@ -332,62 +333,53 @@ async function executeContact(
 		const isJobChange = this.getNodeParameter(
 			'isJobChange',
 			i,
-			false
+			false,
 		) as boolean;
 		if (isJobChange) body.isJobChange = true;
 
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
 			i,
-			false
+			false,
 		) as boolean;
 		if (waitForResults) body.waitForResults = true;
 
-		return seamlessApiRequest.call(
-			this,
-			'POST',
-			'/contacts/research',
-			body
-		);
+		return seamlessMcpCall.call(this, 'research_contacts', body);
 	}
 
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
 		const startDate = this.getNodeParameter('startDate', i, '') as string;
 		const endDate = this.getNodeParameter('endDate', i, '') as string;
-		const qs: IDataObject = {};
-		if (startDate) qs.startDate = startDate;
-		if (endDate) qs.endDate = endDate;
+		const args: IDataObject = {};
+		if (startDate) args.startDate = startDate;
+		if (endDate) args.endDate = endDate;
 
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		if (cleaned.orgIds !== undefined) {
 			const arr = csvToStringArray(cleaned.orgIds);
-			if (arr.length) qs.orgIds = arr.join(',');
+			if (arr.length) args.orgIds = arr.join(',');
 			delete cleaned.orgIds;
 		}
-		Object.assign(qs, cleaned);
+		Object.assign(args, cleaned);
 
 		if (returnAll) {
-			return seamlessApiRequestAllItems.call(
+			return seamlessMcpCallAllPages.call(
 				this,
-				'GET',
-				'/contacts',
-				undefined,
-				qs
+				'get_my_contacts',
+				args,
 			);
 		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
-		const response = await seamlessApiRequest.call(
+		args.limit = this.getNodeParameter('limit', i) as number;
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/contacts',
-			undefined,
-			qs
+			'get_my_contacts',
+			args,
 		);
 		return (response.data || response) as IDataObject[];
 	}
@@ -395,12 +387,10 @@ async function executeContact(
 	if (operation === 'pollResearch') {
 		const requestIds = this.getNodeParameter('requestIds', i) as string;
 		const ids = csvToStringArray(requestIds);
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'GET',
-			'/contacts/research/poll',
-			undefined,
-			{ requestIds: ids.join(',') }
+			'poll_contact_research',
+			{ requestIds: ids },
 		);
 	}
 
@@ -460,11 +450,11 @@ async function executeCompany(
 		}
 		Object.assign(body, cleaned);
 
-		return seamlessApiSearchAllItems.call(
+		return seamlessMcpSearchAll.call(
 			this,
-			'/search/companies',
+			'search_companies',
 			body,
-			limit
+			limit,
 		);
 	}
 
@@ -473,7 +463,7 @@ async function executeCompany(
 		setStringArray(
 			body,
 			'searchResultIds',
-			this.getNodeParameter('searchResultIds', i, '')
+			this.getNodeParameter('searchResultIds', i, ''),
 		);
 
 		const companies = this.getNodeParameter('companies', i, '[]') as string;
@@ -483,55 +473,46 @@ async function executeCompany(
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
 			i,
-			false
+			false,
 		) as boolean;
 		if (waitForResults) body.waitForResults = true;
 
-		return seamlessApiRequest.call(
-			this,
-			'POST',
-			'/companies/research',
-			body
-		);
+		return seamlessMcpCall.call(this, 'research_companies', body);
 	}
 
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
 		const startDate = this.getNodeParameter('startDate', i, '') as string;
 		const endDate = this.getNodeParameter('endDate', i, '') as string;
-		const qs: IDataObject = {};
-		if (startDate) qs.startDate = startDate;
-		if (endDate) qs.endDate = endDate;
+		const args: IDataObject = {};
+		if (startDate) args.startDate = startDate;
+		if (endDate) args.endDate = endDate;
 
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		if (cleaned.orgIds !== undefined) {
 			const arr = csvToStringArray(cleaned.orgIds);
-			if (arr.length) qs.orgIds = arr.join(',');
+			if (arr.length) args.orgIds = arr.join(',');
 			delete cleaned.orgIds;
 		}
-		Object.assign(qs, cleaned);
+		Object.assign(args, cleaned);
 
 		if (returnAll) {
-			return seamlessApiRequestAllItems.call(
+			return seamlessMcpCallAllPages.call(
 				this,
-				'GET',
-				'/companies',
-				undefined,
-				qs
+				'get_my_companies',
+				args,
 			);
 		}
-		qs.limit = this.getNodeParameter('limit', i) as number;
-		const response = await seamlessApiRequest.call(
+		args.limit = this.getNodeParameter('limit', i) as number;
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/companies',
-			undefined,
-			qs
+			'get_my_companies',
+			args,
 		);
 		return (response.data || response) as IDataObject[];
 	}
@@ -539,12 +520,10 @@ async function executeCompany(
 	if (operation === 'pollResearch') {
 		const requestIds = this.getNodeParameter('requestIds', i) as string;
 		const ids = csvToStringArray(requestIds);
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'GET',
-			'/companies/research/poll',
-			undefined,
-			{ requestIds: ids.join(',') }
+			'poll_company_research',
+			{ requestIds: ids },
 		);
 	}
 
@@ -560,23 +539,23 @@ async function executeList(
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'create') {
 		const name = this.getNodeParameter('name', i) as string;
-		return seamlessApiRequest.call(this, 'POST', '/lists', { name });
+		return seamlessMcpCall.call(this, 'create_list', { name });
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'listId', i);
-		return seamlessApiRequest.call(this, 'GET', `/lists/${id}`);
+		return seamlessMcpCall.call(this, 'get_lists', { listId: id });
 	}
 	if (operation === 'getMany') {
-		return seamlessApiRequest.call(this, 'GET', '/lists');
+		return seamlessMcpCall.call(this, 'get_lists');
 	}
 	if (operation === 'update') {
 		const id = extractRlId(this, 'listId', i);
 		const name = this.getNodeParameter('name', i) as string;
-		return seamlessApiRequest.call(this, 'PUT', `/lists/${id}`, { name });
+		return seamlessMcpCall.call(this, 'update_list', { id, name });
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'listId', i);
-		await seamlessApiRequest.call(this, 'DELETE', `/lists/${id}`);
+		await seamlessMcpCall.call(this, 'delete_list', { id });
 		return { deleted: true };
 	}
 	return {};
@@ -594,34 +573,28 @@ async function executeCampaign(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const body: IDataObject = { name };
 		if (additionalFields.emailAccountIds) {
 			const ids = csvToNumberArray(additionalFields.emailAccountIds);
 			if (ids.length) body.emailAccountIds = ids;
 		}
-		return seamlessApiRequest.call(this, 'POST', '/campaigns', body);
+		return seamlessMcpCall.call(this, 'create_campaign', body);
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'campaignId', i);
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const result = await seamlessApiRequest.call(this, 'GET', `/campaigns/${id}`);
+		const result = await seamlessMcpCall.call(this, 'list_campaigns', { campaignId: id });
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const qs: IDataObject = {};
+		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
-		if (searchText) qs.searchText = searchText;
-		qs.limit = this.getNodeParameter('limit', i, 10) as number;
-		const result = await seamlessApiRequest.call(
-			this,
-			'GET',
-			'/campaigns',
-			undefined,
-			qs
-		);
+		if (searchText) args.searchText = searchText;
+		args.limit = this.getNodeParameter('limit', i, 10) as number;
+		const result = await seamlessMcpCall.call(this, 'list_campaigns', args);
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
 	if (operation === 'update') {
@@ -629,9 +602,9 @@ async function executeCampaign(
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
-		const body: IDataObject = {};
+		const body: IDataObject = { campaignId: id };
 		if (updateFields.name) body.name = updateFields.name;
 		if (updateFields.isPublic !== undefined)
 			body.isPublic = updateFields.isPublic;
@@ -639,101 +612,79 @@ async function executeCampaign(
 			const ids = csvToNumberArray(updateFields.emailAccountIds);
 			if (ids.length) body.emailAccountIds = ids;
 		}
-		return seamlessApiRequest.call(this, 'PUT', `/campaigns/${id}`, body);
+		return seamlessMcpCall.call(this, 'update_campaign', body);
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'campaignId', i);
-		await seamlessApiRequest.call(this, 'DELETE', `/campaigns/${id}`);
+		await seamlessMcpCall.call(this, 'delete_campaign', { campaignId: id });
 		return { deleted: true };
 	}
 	if (operation === 'executeAction') {
 		const id = extractRlId(this, 'campaignId', i);
 		const action = this.getNodeParameter('action', i) as string;
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'POST',
-			`/campaigns/${id}/actions`,
-			{ action }
+			'execute_campaign_action',
+			{ campaignId: id, action },
 		);
 	}
 	if (operation === 'clone') {
 		const id = extractRlId(this, 'campaignId', i);
 		const name = this.getNodeParameter('name', i) as string;
-		return seamlessApiRequest.call(this, 'POST', `/campaigns/${id}/clone`, {
+		return seamlessMcpCall.call(this, 'clone_campaign', {
+			campaignId: id,
 			name,
 		});
 	}
 	if (operation === 'addContacts') {
 		const id = extractRlId(this, 'campaignId', i);
 		const contactIds = csvToNumberArray(
-			this.getNodeParameter('contactIds', i)
+			this.getNodeParameter('contactIds', i),
 		);
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'POST',
-			`/campaigns/${id}/contacts`,
-			{ contactIds }
+			'add_contacts_to_campaign',
+			{ campaignId: id, contactIds },
 		);
 	}
 	if (operation === 'removeContacts') {
 		const id = extractRlId(this, 'campaignId', i);
 		const contactIds = csvToNumberArray(
-			this.getNodeParameter('contactIds', i)
+			this.getNodeParameter('contactIds', i),
 		);
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'DELETE',
-			`/campaigns/${id}/contacts`,
-			{ contactIds }
+			'remove_contacts_from_campaign',
+			{ campaignId: id, contactIds },
 		);
 	}
 	if (operation === 'getContacts') {
 		const id = extractRlId(this, 'campaignId', i);
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const qs: IDataObject = {};
+		const args: IDataObject = { campaignId: id };
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
-		if (searchText) qs.searchText = searchText;
+		if (searchText) args.searchText = searchText;
 
 		if (returnAll) {
-			const allItems: IDataObject[] = [];
-			let offset = 0;
-			const batchSize = 50;
-			let hasMore = true;
-			while (hasMore) {
-				qs.limit = batchSize;
-				qs.offset = offset;
-				const resp = await seamlessApiRequest.call(
-					this,
-					'GET',
-					`/campaigns/${id}/contacts`,
-					undefined,
-					qs
-				);
-				const items = (resp.data || resp) as IDataObject[];
-				if (Array.isArray(items) && items.length > 0) {
-					allItems.push(...items);
-					offset += items.length;
-					hasMore = items.length === batchSize;
-				} else {
-					hasMore = false;
-				}
-			}
-			return allItems;
+			return seamlessMcpCallAllOffsets.call(
+				this,
+				'list_campaign_contacts',
+				args,
+				50,
+			);
 		}
-		qs.limit = this.getNodeParameter('limit', i, 25) as number;
-		qs.offset = this.getNodeParameter('offset', i, 0) as number;
-		const response = await seamlessApiRequest.call(
+		args.limit = this.getNodeParameter('limit', i, 25) as number;
+		args.offset = this.getNodeParameter('offset', i, 0) as number;
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			`/campaigns/${id}/contacts`,
-			undefined,
-			qs
+			'list_campaign_contacts',
+			args,
 		);
 		return (response.data || response) as IDataObject[];
 	}
 	if (operation === 'getMetrics') {
 		const id = extractRlId(this, 'campaignId', i);
-		return seamlessApiRequest.call(this, 'GET', `/campaigns/${id}/metrics`);
+		return seamlessMcpCall.call(this, 'get_campaign_metrics', { campaignId: id });
 	}
 	return {};
 }
@@ -749,6 +700,7 @@ async function executeCampaignStep(
 
 	if (operation === 'create') {
 		const body: IDataObject = {
+			campaignId,
 			type: this.getNodeParameter('type', i) as string,
 			name: this.getNodeParameter('name', i) as string,
 			dueDay: this.getNodeParameter('dueDay', i) as number,
@@ -756,7 +708,7 @@ async function executeCampaignStep(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		const templateData = unwrapTemplateData(cleaned.templateData);
@@ -764,18 +716,13 @@ async function executeCampaignStep(
 		dropZeroIds(cleaned, ['templateId']);
 		Object.assign(body, cleaned);
 		if (templateData) body.templateData = templateData;
-		return seamlessApiRequest.call(
-			this,
-			'POST',
-			`/campaigns/${campaignId}/steps`,
-			body
-		);
+		return seamlessMcpCall.call(this, 'create_campaign_step', body);
 	}
 	if (operation === 'getMany') {
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'GET',
-			`/campaigns/${campaignId}/steps`
+			'list_campaign_steps',
+			{ campaignId },
 		);
 	}
 	if (operation === 'update') {
@@ -784,38 +731,32 @@ async function executeCampaignStep(
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(updateFields);
 		const templateData = unwrapTemplateData(cleaned.templateData);
 		delete cleaned.templateData;
 		dropZeroIds(cleaned, ['templateId', 'stepNumber']);
-		const body: IDataObject = { dueDay, ...cleaned };
+		const body: IDataObject = { campaignStepId: stepId, dueDay, ...cleaned };
 		if (templateData) body.templateData = templateData;
-		return seamlessApiRequest.call(
-			this,
-			'PUT',
-			`/campaigns/${campaignId}/steps/${stepId}`,
-			body
-		);
+		return seamlessMcpCall.call(this, 'update_campaign_step', body);
 	}
 	if (operation === 'delete') {
 		const stepId = this.getNodeParameter('stepId', i) as number;
-		await seamlessApiRequest.call(
+		await seamlessMcpCall.call(
 			this,
-			'DELETE',
-			`/campaigns/${campaignId}/steps/${stepId}`
+			'delete_campaign_step',
+			{ campaignStepId: stepId, campaignId },
 		);
 		return { deleted: true };
 	}
 	if (operation === 'executeAction') {
 		const stepId = this.getNodeParameter('stepId', i) as number;
 		const action = this.getNodeParameter('action', i) as string;
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'POST',
-			`/campaigns/${campaignId}/steps/${stepId}/actions`,
-			{ action }
+			'execute_campaign_step_action',
+			{ campaignStepId: stepId, action },
 		);
 	}
 	return {};
@@ -833,13 +774,13 @@ async function executeSavedSearch(
 			name: this.getNodeParameter('name', i) as string,
 			type: this.getNodeParameter('type', i) as string,
 			values: JSON.parse(
-				this.getNodeParameter('values', i, '{}') as string
+				this.getNodeParameter('values', i, '{}') as string,
 			),
 		};
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		if (cleaned.tagIds !== undefined) {
@@ -848,25 +789,23 @@ async function executeSavedSearch(
 			delete cleaned.tagIds;
 		}
 		Object.assign(body, cleaned);
-		return seamlessApiRequest.call(this, 'POST', '/saved-searches', body);
+		return seamlessMcpCall.call(this, 'create_saved_search', body);
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'savedSearchId', i);
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const result = await seamlessApiRequest.call(this, 'GET', `/saved-searches/${id}`);
+		const result = await seamlessMcpCall.call(this, 'list_saved_searches', { id });
 		return simplifyResults(result, SAVED_SEARCH_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const qs: IDataObject = {};
+		const args: IDataObject = {};
 		const type = this.getNodeParameter('type', i, '') as string;
-		if (type) qs.type = type;
-		const result = await seamlessApiRequest.call(
+		if (type) args.type = type;
+		const result = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/saved-searches',
-			undefined,
-			qs
+			'list_saved_searches',
+			args,
 		);
 		return simplifyResults(result, SAVED_SEARCH_SIMPLIFIED_KEYS, simplify);
 	}
@@ -875,9 +814,9 @@ async function executeSavedSearch(
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
-		const body: IDataObject = {};
+		const body: IDataObject = { id };
 		if (updateFields.name) body.name = updateFields.name;
 		if (updateFields.sortColumn) body.sortColumn = updateFields.sortColumn;
 		if (updateFields.sortOrder) body.sortOrder = updateFields.sortOrder;
@@ -889,16 +828,11 @@ async function executeSavedSearch(
 			const arr = csvToStringArray(updateFields.tagIds);
 			if (arr.length) body.tagIds = arr;
 		}
-		return seamlessApiRequest.call(
-			this,
-			'PUT',
-			`/saved-searches/${id}`,
-			body
-		);
+		return seamlessMcpCall.call(this, 'update_saved_search', body);
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'savedSearchId', i);
-		await seamlessApiRequest.call(this, 'DELETE', `/saved-searches/${id}`);
+		await seamlessMcpCall.call(this, 'delete_saved_search', { id });
 		return { deleted: true };
 	}
 	return {};
@@ -918,50 +852,46 @@ async function executeTemplate(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['emailFooterId', 'emailSignatureId']);
 		Object.assign(body, cleaned);
 		if (!body.type) body.type = 'email';
-		return seamlessApiRequest.call(this, 'POST', '/templates', body);
+		return seamlessMcpCall.call(this, 'create_template', body);
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'templateId', i);
 		const type = this.getNodeParameter('type', i, 'email') as string;
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const result = await seamlessApiRequest.call(
+		const result = await seamlessMcpCall.call(
 			this,
-			'GET',
-			`/templates/${id}`,
-			undefined,
-			{ type }
+			'list_templates',
+			{ templateId: id, type },
 		);
 		return simplifyResults(result, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const qs: IDataObject = {
+		const args: IDataObject = {
 			page: this.getNodeParameter('page', i, 1) as number,
 			limit: this.getNodeParameter('limit', i, 15) as number,
 		};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
-		if (searchText) qs.searchText = searchText;
+		if (searchText) args.searchText = searchText;
 		const type = this.getNodeParameter('type', i, '') as string;
-		if (type) qs.type = type;
+		if (type) args.type = type;
 		const includeStats = this.getNodeParameter(
 			'includeStats',
 			i,
-			false
+			false,
 		) as boolean;
-		if (includeStats) qs.includeStats = true;
+		if (includeStats) args.includeStats = true;
 
-		const response = await seamlessApiRequest.call(
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/templates',
-			undefined,
-			qs
+			'list_templates',
+			args,
 		);
 		const items = (response.data || response) as IDataObject[];
 		return simplifyResults(items, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject[];
@@ -972,25 +902,18 @@ async function executeTemplate(
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
-		const body: IDataObject = { type, ...cleanObj(updateFields) };
-		return seamlessApiRequest.call(
-			this,
-			'PUT',
-			`/templates/${id}`,
-			body
-		);
+		const body: IDataObject = { templateId: id, type, ...cleanObj(updateFields) };
+		return seamlessMcpCall.call(this, 'update_template', body);
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'templateId', i);
 		const type = this.getNodeParameter('type', i, 'email') as string;
-		await seamlessApiRequest.call(
+		await seamlessMcpCall.call(
 			this,
-			'DELETE',
-			`/templates/${id}`,
-			undefined,
-			{ type }
+			'delete_template',
+			{ templateId: id, type },
 		);
 		return { deleted: true };
 	}
@@ -1013,17 +936,17 @@ async function executeEmail(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['templateId']);
 		Object.assign(body, cleaned);
-		return seamlessApiRequest.call(this, 'POST', '/emails', body);
+		return seamlessMcpCall.call(this, 'create_email_draft', body);
 	}
 	if (operation === 'getDraft') {
 		const id = this.getNodeParameter('emailId', i) as number;
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const result = await seamlessApiRequest.call(this, 'GET', `/emails/${id}`);
+		const result = await seamlessMcpCall.call(this, 'get_email_draft', { emailId: id });
 		return simplifyResults(result, EMAIL_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'updateDraft') {
@@ -1031,26 +954,20 @@ async function executeEmail(
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'PUT',
-			`/emails/${id}`,
-			cleanObj(updateFields)
+			'update_email_draft',
+			{ emailId: id, ...cleanObj(updateFields) },
 		);
 	}
 	if (operation === 'sendDraft') {
 		const id = this.getNodeParameter('emailId', i) as number;
-		const body: IDataObject = {};
+		const body: IDataObject = { emailId: id };
 		const from = this.getNodeParameter('from', i, '') as string;
 		if (from) body.from = from;
-		return seamlessApiRequest.call(
-			this,
-			'POST',
-			`/emails/${id}/send`,
-			body
-		);
+		return seamlessMcpCall.call(this, 'send_email_draft', body);
 	}
 	if (operation === 'send') {
 		const body: IDataObject = {
@@ -1061,12 +978,12 @@ async function executeEmail(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['templateId']);
 		Object.assign(body, cleaned);
-		return seamlessApiRequest.call(this, 'POST', '/emails/send', body);
+		return seamlessMcpCall.call(this, 'send_email', body);
 	}
 	if (operation === 'sendBulk') {
 		const body: IDataObject = {
@@ -1075,7 +992,7 @@ async function executeEmail(
 		const bulkFields = this.getNodeParameter(
 			'bulkFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleanedBulk = cleanObj(bulkFields);
 		dropZeroIds(cleanedBulk, ['templateId']);
@@ -1084,11 +1001,11 @@ async function executeEmail(
 		const filtersRaw = this.getNodeParameter(
 			'filters',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const normalized = normalizeBulkFilters(filtersRaw);
 		if (Object.keys(normalized).length > 0) body.filters = normalized;
-		return seamlessApiRequest.call(this, 'POST', '/emails/send-bulk', body);
+		return seamlessMcpCall.call(this, 'send_bulk_email', body);
 	}
 	if (operation === 'preview') {
 		const body: IDataObject = {
@@ -1099,12 +1016,12 @@ async function executeEmail(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['templateId']);
 		Object.assign(body, cleaned);
-		return seamlessApiRequest.call(this, 'POST', '/emails/preview', body);
+		return seamlessMcpCall.call(this, 'send_email_preview', body);
 	}
 	return {};
 }
@@ -1125,61 +1042,38 @@ async function executeTask(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['templateId']);
 		Object.assign(body, cleaned);
-		return seamlessApiRequest.call(this, 'POST', '/tasks', body);
+		return seamlessMcpCall.call(this, 'create_task', body);
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'taskId', i);
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const result = await seamlessApiRequest.call(this, 'GET', `/tasks/${id}`);
+		const result = await seamlessMcpCall.call(this, 'list_tasks', { taskId: id });
 		return simplifyResults(result, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const qs: IDataObject = {};
+		const args: IDataObject = {};
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
-		Object.assign(qs, cleanObj(filters));
+		Object.assign(args, cleanObj(filters));
 
 		if (returnAll) {
-			const allItems: IDataObject[] = [];
-			let offset = 0;
-			const batchSize = 50;
-			let hasMore = true;
-			while (hasMore) {
-				qs.limit = batchSize;
-				qs.offset = offset;
-				const resp = await seamlessApiRequest.call(
-					this,
-					'GET',
-					'/tasks',
-					undefined,
-					qs
-				);
-				const items = (resp.data || resp) as IDataObject[];
-				if (Array.isArray(items) && items.length > 0) {
-					allItems.push(...items);
-					offset += items.length;
-					hasMore = items.length === batchSize;
-				} else {
-					hasMore = false;
-				}
-			}
+			const allItems = await seamlessMcpCallAllOffsets.call(
+				this,
+				'list_tasks',
+				args,
+				50,
+			);
 			return simplifyResults(allItems, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject[];
 		}
-		qs.limit = this.getNodeParameter('limit', i, 25) as number;
-		if (qs.offset === undefined) qs.offset = 0;
-		const response = await seamlessApiRequest.call(
-			this,
-			'GET',
-			'/tasks',
-			undefined,
-			qs
-		);
+		args.limit = this.getNodeParameter('limit', i, 25) as number;
+		if (args.offset === undefined) args.offset = 0;
+		const response = await seamlessMcpCall.call(this, 'list_tasks', args);
 		const items = (response.data || response) as IDataObject[];
 		return simplifyResults(items, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject[];
 	}
@@ -1188,24 +1082,24 @@ async function executeTask(
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
-		return seamlessApiRequest.call(
+		return seamlessMcpCall.call(
 			this,
-			'PUT',
-			`/tasks/${id}`,
-			cleanObj(updateFields)
+			'update_task',
+			{ taskId: id, ...cleanObj(updateFields) },
 		);
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'taskId', i);
-		await seamlessApiRequest.call(this, 'DELETE', `/tasks/${id}`);
+		await seamlessMcpCall.call(this, 'delete_task', { taskId: id });
 		return { deleted: true };
 	}
 	if (operation === 'executeAction') {
 		const id = extractRlId(this, 'taskId', i);
 		const action = this.getNodeParameter('action', i) as string;
-		return seamlessApiRequest.call(this, 'POST', `/tasks/${id}/actions`, {
+		return seamlessMcpCall.call(this, 'execute_task_action', {
+			taskId: id,
 			action,
 		});
 	}
@@ -1226,16 +1120,16 @@ async function executeCall(
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
-			{}
+			{},
 		) as IDataObject;
 		Object.assign(body, cleanObj(additionalFields));
-		return seamlessApiRequest.call(this, 'POST', '/calls/log', body);
+		return seamlessMcpCall.call(this, 'log_call', body);
 	}
 	if (operation === 'getDispositions') {
-		return seamlessApiRequest.call(this, 'GET', '/calls/dispositions');
+		return seamlessMcpCall.call(this, 'list_call_dispositions');
 	}
 	if (operation === 'getSentiments') {
-		return seamlessApiRequest.call(this, 'GET', '/calls/sentiments');
+		return seamlessMcpCall.call(this, 'list_call_sentiments');
 	}
 	return {};
 }
@@ -1249,44 +1143,24 @@ async function executeActivity(
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const qs: IDataObject = {};
+		const args: IDataObject = {};
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
-		Object.assign(qs, cleanObj(filters));
+		Object.assign(args, cleanObj(filters));
 
 		if (returnAll) {
-			const allItems: IDataObject[] = [];
-			let offset = 0;
-			const limit = 50;
-			let hasMore = true;
-			while (hasMore) {
-				qs.limit = limit;
-				qs.offset = offset;
-				const response = await seamlessApiRequest.call(
-					this,
-					'GET',
-					'/activity',
-					undefined,
-					qs
-				);
-				const items = (response.data || response) as IDataObject[];
-				if (Array.isArray(items) && items.length > 0) {
-					allItems.push(...items);
-					offset += items.length;
-					hasMore = items.length === limit;
-				} else {
-					hasMore = false;
-				}
-			}
-			return allItems;
+			return seamlessMcpCallAllOffsets.call(
+				this,
+				'get_activity_feed',
+				args,
+				50,
+			);
 		}
-		qs.limit = this.getNodeParameter('limit', i, 25) as number;
-		if (qs.offset === undefined) qs.offset = 0;
-		const response = await seamlessApiRequest.call(
+		args.limit = this.getNodeParameter('limit', i, 25) as number;
+		if (args.offset === undefined) args.offset = 0;
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/activity',
-			undefined,
-			qs
+			'get_activity_feed',
+			args,
 		);
 		return (response.data || response) as IDataObject[];
 	}
@@ -1302,27 +1176,23 @@ async function executeEmailAccount(
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'getMany') {
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const qs: IDataObject = {};
+		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
-		if (searchText) qs.searchText = searchText;
+		if (searchText) args.searchText = searchText;
 
 		if (returnAll) {
-			return seamlessApiRequestAllItems.call(
+			return seamlessMcpCallAllPages.call(
 				this,
-				'GET',
-				'/email-accounts',
-				undefined,
-				qs
+				'list_email_accounts',
+				args,
 			);
 		}
-		qs.limit = this.getNodeParameter('limit', i, 25) as number;
-		qs.page = this.getNodeParameter('page', i, 1) as number;
-		const response = await seamlessApiRequest.call(
+		args.limit = this.getNodeParameter('limit', i, 25) as number;
+		args.page = this.getNodeParameter('page', i, 1) as number;
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/email-accounts',
-			undefined,
-			qs
+			'list_email_accounts',
+			args,
 		);
 		return (response.data || response) as IDataObject[];
 	}
@@ -1337,16 +1207,14 @@ async function executeEmailFooter(
 	i: number
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'getMany') {
-		const qs: IDataObject = {
+		const args: IDataObject = {
 			limit: this.getNodeParameter('limit', i, 25) as number,
 			page: this.getNodeParameter('page', i, 1) as number,
 		};
-		const response = await seamlessApiRequest.call(
+		const response = await seamlessMcpCall.call(
 			this,
-			'GET',
-			'/email-footers',
-			undefined,
-			qs
+			'list_email_footers',
+			args,
 		);
 		return (response.data || response) as IDataObject[];
 	}
@@ -1459,15 +1327,9 @@ class Seamless implements INodeType {
 		listSearch: {
 			async searchLists(
 				this: ILoadOptionsFunctions,
-				filter?: string
+				filter?: string,
 			): Promise<INodeListSearchResult> {
-				const response = await seamlessApiRequest.call(
-					this,
-					'GET',
-					'/lists',
-					undefined,
-					{ limit: 100 }
-				);
+				const response = await seamlessMcpCall.call(this, 'get_lists');
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])
 					.filter(
@@ -1475,7 +1337,7 @@ class Seamless implements INodeType {
 							!filter ||
 							String(item.name || '')
 								.toLowerCase()
-								.includes(filter.toLowerCase())
+								.includes(filter.toLowerCase()),
 					)
 					.map((item) => ({
 						name: String(item.name || item.id),
@@ -1485,14 +1347,12 @@ class Seamless implements INodeType {
 			},
 			async searchCampaigns(
 				this: ILoadOptionsFunctions,
-				filter?: string
+				filter?: string,
 			): Promise<INodeListSearchResult> {
-				const response = await seamlessApiRequest.call(
+				const response = await seamlessMcpCall.call(
 					this,
-					'GET',
-					'/campaigns',
-					undefined,
-					{ limit: 100 }
+					'list_campaigns',
+					{ limit: 25 },
 				);
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])
@@ -1501,7 +1361,7 @@ class Seamless implements INodeType {
 							!filter ||
 							String(item.name || '')
 								.toLowerCase()
-								.includes(filter.toLowerCase())
+								.includes(filter.toLowerCase()),
 					)
 					.map((item) => ({
 						name: String(item.name || item.id),
@@ -1511,14 +1371,12 @@ class Seamless implements INodeType {
 			},
 			async searchTemplates(
 				this: ILoadOptionsFunctions,
-				filter?: string
+				filter?: string,
 			): Promise<INodeListSearchResult> {
-				const response = await seamlessApiRequest.call(
+				const response = await seamlessMcpCall.call(
 					this,
-					'GET',
-					'/templates',
-					undefined,
-					{ limit: 100, type: 'email' }
+					'list_templates',
+					{ limit: 50, type: 'email' },
 				);
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])
@@ -1527,7 +1385,7 @@ class Seamless implements INodeType {
 							!filter ||
 							String(item.name || '')
 								.toLowerCase()
-								.includes(filter.toLowerCase())
+								.includes(filter.toLowerCase()),
 					)
 					.map((item) => ({
 						name: String(item.name || item.id),
@@ -1537,14 +1395,11 @@ class Seamless implements INodeType {
 			},
 			async searchSavedSearches(
 				this: ILoadOptionsFunctions,
-				filter?: string
+				filter?: string,
 			): Promise<INodeListSearchResult> {
-				const response = await seamlessApiRequest.call(
+				const response = await seamlessMcpCall.call(
 					this,
-					'GET',
-					'/saved-searches',
-					undefined,
-					{ limit: 100 }
+					'list_saved_searches',
 				);
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])
@@ -1553,7 +1408,7 @@ class Seamless implements INodeType {
 							!filter ||
 							String(item.name || '')
 								.toLowerCase()
-								.includes(filter.toLowerCase())
+								.includes(filter.toLowerCase()),
 					)
 					.map((item) => ({
 						name: String(item.name || item.id),
@@ -1563,14 +1418,12 @@ class Seamless implements INodeType {
 			},
 			async searchTasks(
 				this: ILoadOptionsFunctions,
-				filter?: string
+				filter?: string,
 			): Promise<INodeListSearchResult> {
-				const response = await seamlessApiRequest.call(
+				const response = await seamlessMcpCall.call(
 					this,
-					'GET',
-					'/tasks',
-					undefined,
-					{ limit: 100 }
+					'list_tasks',
+					{ limit: 50 },
 				);
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])
@@ -1579,7 +1432,7 @@ class Seamless implements INodeType {
 							!filter ||
 							String(item.name || '')
 								.toLowerCase()
-								.includes(filter.toLowerCase())
+								.includes(filter.toLowerCase()),
 					)
 					.map((item) => ({
 						name: String(item.name || item.id),
@@ -1615,10 +1468,9 @@ class Seamless implements INodeType {
 				} else if (resource === 'list') {
 					responseData = await executeList.call(this, operation, i);
 				} else if (resource === 'credits') {
-					responseData = await seamlessApiRequest.call(
+					responseData = await seamlessMcpCall.call(
 						this,
-						'GET',
-						'/credits'
+						'get_credits',
 					);
 				} else if (resource === 'campaign') {
 					responseData = await executeCampaign.call(

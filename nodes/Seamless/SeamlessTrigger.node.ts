@@ -7,7 +7,7 @@ import {
 	NodeConnectionTypes,
 } from 'n8n-workflow';
 
-import { seamlessApiRequest } from './GenericFunctions';
+import { seamlessMcpCall } from './GenericFunctions';
 
 export class SeamlessTrigger implements INodeType {
 	description: INodeTypeDescription = {
@@ -81,51 +81,45 @@ export class SeamlessTrigger implements INodeType {
 		const now = new Date().toISOString();
 		const isManual = this.getMode() === 'manual';
 
-		let endpoint = '';
-		const qs: IDataObject = {};
+		let toolName = '';
+		const args: IDataObject = {};
 
 		if (triggerOn === 'contactResearched') {
-			endpoint = '/contacts';
+			toolName = 'get_my_contacts';
 			if (isManual) {
-				qs.startDate = new Date(
-					Date.now() - 30 * 24 * 60 * 60 * 1000
+				args.startDate = new Date(
+					Date.now() - 30 * 24 * 60 * 60 * 1000,
 				).toISOString();
-				qs.endDate = now;
-				qs.limit = 1;
+				args.endDate = now;
+				args.limit = 1;
 			} else {
-				qs.startDate = (webhookData.lastTimeChecked as string) || now;
-				qs.endDate = now;
+				args.startDate = (webhookData.lastTimeChecked as string) || now;
+				args.endDate = now;
 			}
 		} else if (triggerOn === 'companyResearched') {
-			endpoint = '/companies';
+			toolName = 'get_my_companies';
 			if (isManual) {
-				qs.startDate = new Date(
-					Date.now() - 30 * 24 * 60 * 60 * 1000
+				args.startDate = new Date(
+					Date.now() - 30 * 24 * 60 * 60 * 1000,
 				).toISOString();
-				qs.endDate = now;
-				qs.limit = 1;
+				args.endDate = now;
+				args.limit = 1;
 			} else {
-				qs.startDate = (webhookData.lastTimeChecked as string) || now;
-				qs.endDate = now;
+				args.startDate = (webhookData.lastTimeChecked as string) || now;
+				args.endDate = now;
 			}
 		} else if (triggerOn === 'activityEvent') {
-			endpoint = '/activity';
+			toolName = 'get_activity_feed';
 			if (isManual) {
-				qs.limit = 1;
-				qs.offset = 0;
+				args.limit = 1;
+				args.offset = 0;
 			} else {
-				qs.limit = 50;
-				qs.offset = 0;
+				args.limit = 50;
+				args.offset = 0;
 			}
 		}
 
-		const response = await seamlessApiRequest.call(
-			this,
-			'GET',
-			endpoint,
-			undefined,
-			qs
-		);
+		const response = await seamlessMcpCall.call(this, toolName, args);
 
 		webhookData.lastTimeChecked = now;
 
