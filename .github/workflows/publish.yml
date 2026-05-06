@@ -22,7 +22,7 @@
 #        Repository owner: SeamlessAI
 #        Repository name:  n8n-nodes-seamless
 #        Workflow name:    publish.yml
-#        Environment:      (leave blank unless you use GitHub Environments)
+#        Environment:      prod
 #   4. Leave the NPM_TOKEN secret unset in this repository. GitHub's OIDC
 #      token is used instead — no secret ever touches your repo settings.
 #
@@ -46,6 +46,7 @@ jobs:
   publish:
     name: Publish to npm
     runs-on: ubuntu-latest
+    environment: prod
 
     permissions:
       id-token: write
