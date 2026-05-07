@@ -3,7 +3,7 @@ import type { ICredentialType, INodeProperties } from 'n8n-workflow';
 export class SeamlessOAuth2Api implements ICredentialType {
 	name = 'seamlessOAuth2Api';
 	displayName = 'Seamless OAuth2 API';
-	documentationUrl = 'https://docs.seamless.ai/mcp';
+	documentationUrl = 'https://docs.seamless.ai';
 	extends = ['oAuth2Api'];
 
 	properties: INodeProperties[] = [
