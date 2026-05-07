@@ -7,7 +7,7 @@ import {
 export class SeamlessApi implements ICredentialType {
 	name = 'seamlessApi';
 	displayName = 'Seamless API';
-	documentationUrl = 'https://docs.seamless.ai';
+	documentationUrl = 'https://docs.seamless.ai/mcp';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'MCP Server URL',
