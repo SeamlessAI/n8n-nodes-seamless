@@ -52,7 +52,15 @@ npm run dev   # Starts local n8n with the node loaded at localhost:5678
 
 ## Credentials
 
-Create **Seamless API** credentials in n8n and provide:
+Two authentication methods are supported:
+
+### Option 1 — OAuth 2 (recommended)
+
+Select **Seamless OAuth2 API** when creating credentials. n8n will walk you through the standard OAuth 2 authorization-code flow — no manual key management required.
+
+### Option 2 — API Key
+
+Select **Seamless API** when creating credentials and provide:
 
 | Field | Description |
 |-------|-------------|
