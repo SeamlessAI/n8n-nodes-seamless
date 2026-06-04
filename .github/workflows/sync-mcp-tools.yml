@@ -23,6 +23,6 @@ jobs:
 
       - name: Validate MCP tool catalog
         env:
-          MCP_BASE_URL: ${{ secrets.MCP_STAGING_URL || 'https://mcp-staging.seamless.ai/mcp' }}
-          MCP_API_KEY: ${{ secrets.MCP_STAGING_API_KEY }}
+          MCP_BASE_URL: ${{ secrets.MCP_BASE_URL }}
+          MCP_API_KEY: ${{ secrets.MCP_API_KEY }}
         run: node scripts/validate-mcp-tools.mjs

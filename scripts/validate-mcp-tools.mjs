@@ -6,12 +6,11 @@
  * are found, making it suitable as a CI gate.
  *
  * Environment variables:
- *   MCP_BASE_URL  - MCP server URL (default: https://mcp-staging.seamless.ai/mcp)
- *   MCP_API_KEY   - API key for authentication
+ *   MCP_BASE_URL  - MCP server URL (required)
+ *   MCP_API_KEY   - API key for authentication (required)
  */
 
-const MCP_BASE_URL =
-	process.env.MCP_BASE_URL || 'https://mcp-staging.seamless.ai/mcp';
+const MCP_BASE_URL = process.env.MCP_BASE_URL || '';
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 
 async function fetchMcpTools() {
@@ -50,8 +49,8 @@ async function loadLocalMapping() {
 }
 
 async function main() {
-	if (!MCP_API_KEY) {
-		console.warn('⚠ MCP_API_KEY not set — skipping live validation');
+	if (!MCP_API_KEY || !MCP_BASE_URL) {
+		console.warn('⚠ MCP_API_KEY or MCP_BASE_URL not set — skipping live validation');
 		process.exit(0);
 	}
 
