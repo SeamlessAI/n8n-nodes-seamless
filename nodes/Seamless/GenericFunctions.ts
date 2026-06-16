@@ -35,8 +35,81 @@ function buildMcpBody(toolName: string, args?: IDataObject): IDataObject {
 }
 
 /**
+ * Coerce a single markdown-table cell value to a native JS type.
+ * Strips surrounding quotes, parses JSON objects/arrays, and converts booleans.
+ */
+function cleanCellValue(raw: string): unknown {
+	let val = raw.trim();
+	if (!val) return null;
+
+	if (val.length >= 2 && val.startsWith('"') && val.endsWith('"')) {
+		val = val.slice(1, -1);
+	}
+
+	if (
+		(val.startsWith('{') && val.endsWith('}')) ||
+		(val.startsWith('[') && val.endsWith(']'))
+	) {
+		try {
+			return JSON.parse(val);
+		} catch {
+			/* keep as string */
+		}
+	}
+
+	if (val === 'true') return true;
+	if (val === 'false') return false;
+	if (val === 'null') return null;
+
+	return val;
+}
+
+/**
+ * Parse a markdown table (pipe-delimited with `--- | ---` separator) into an
+ * array of objects keyed by the header row. Returns null when the text does not
+ * look like a markdown table.
+ */
+function parseMarkdownTable(text: string): IDataObject[] | null {
+	const lines = text.split('\n');
+
+	const sepIdx = lines.findIndex((l) =>
+		/^-{2,}(\s*\|\s*-{2,})+\s*$/.test(l.trim()),
+	);
+	if (sepIdx < 1) return null;
+
+	let headerIdx = sepIdx - 1;
+	while (headerIdx >= 0 && !lines[headerIdx].trim()) headerIdx--;
+	if (headerIdx < 0) return null;
+
+	const headers = lines[headerIdx].split(' | ').map((h) => h.trim());
+	if (headers.length < 2) return null;
+
+	const rows: IDataObject[] = [];
+	for (let r = sepIdx + 1; r < lines.length; r++) {
+		let line = lines[r].trim();
+		if (!line) continue;
+
+		if (line.endsWith('|')) line += ' ';
+
+		const cells = line.split(' | ');
+		const record: IDataObject = {};
+		for (let c = 0; c < headers.length; c++) {
+			const raw =
+				c < headers.length - 1
+					? (cells[c] ?? '')
+					: cells.slice(c).join(' | ');
+			record[headers[c]] = cleanCellValue(raw) as IDataObject[keyof IDataObject];
+		}
+		rows.push(record);
+	}
+
+	return rows.length > 0 ? rows : null;
+}
+
+/**
  * Parse the JSON-RPC response envelope returned by the MCP server.
- * Extracts result.content[0].text and parses it as JSON.
+ * Extracts result.content[0].text and attempts JSON parsing first, then
+ * falls back to markdown-table parsing so callers always receive structured data.
  */
 function parseMcpResponse(response: IDataObject): IDataObject {
 	if (response.error) {
@@ -49,6 +122,12 @@ function parseMcpResponse(response: IDataObject): IDataObject {
 	const result = response.result as IDataObject | undefined;
 	if (!result) return response;
 
+	if (result.isError) {
+		const content = (result.content as IDataObject[] | undefined)?.[0];
+		const msg = (content?.text as string) || 'MCP tool returned an error';
+		throw new Error(msg);
+	}
+
 	const content = (result.content as IDataObject[] | undefined)?.[0];
 	const text = content?.text as string | undefined;
 	if (!text) return result;
@@ -56,6 +135,10 @@ function parseMcpResponse(response: IDataObject): IDataObject {
 	try {
 		return JSON.parse(text) as IDataObject;
 	} catch {
+		const rows = parseMarkdownTable(text);
+		if (rows) {
+			return (rows.length === 1 ? rows[0] : { data: rows }) as IDataObject;
+		}
 		return { text } as unknown as IDataObject;
 	}
 }
