@@ -1,8 +1,12 @@
 {
-	"node": "n8n-nodes-base.seamless",
+	"node": "n8n-nodes-seamless.seamless",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Sales"],
+	"subcategories": {
+		"Sales": ["Lead Management"]
+	},
+	"alias": ["seamless", "seamless.ai", "leads", "contacts", "enrichment", "prospecting"],
 	"resources": {
 		"primaryDocumentation": [
 			{
