@@ -1,21 +1,43 @@
 {
 	"name": "@seamless-oss/n8n-nodes-seamless",
-	"version": "0.2.0",
-	"description": "n8n community nodes for Seamless.ai — REST API and trigger",
+	"version": "0.3.0",
+	"description": "n8n community nodes for Seamless",
 	"license": "MIT",
 	"type": "commonjs",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
-	"homepage": "https://seamless.ai",
-	"author": "Seamless",
+	"homepage": "https://github.com/SeamlessAI/n8n-nodes-seamless",
+	"author": {
+		"name": "Seamless Engineering",
+		"email": "devs@seamlesscontacts.com"
+	},
 	"repository": {
 		"type": "git",
-		"url": "https://github.com/SeamlessAI/n8n-nodes-seamless"
+		"url": "https://github.com/SeamlessAI/n8n-nodes-seamless.git"
+	},
+	"bugs": {
+		"url": "https://github.com/SeamlessAI/n8n-nodes-seamless/issues"
 	},
 	"keywords": [
 		"n8n-community-node-package",
 		"n8n",
-		"seamless"
+		"n8n-node",
+		"seamless",
+		"seamless.ai",
+		"sales automation",
+		"lead generation",
+		"contact enrichment",
+		"sales intelligence",
+		"B2B data",
+		"prospecting",
+		"email outreach",
+		"campaign automation",
+		"CRM integration",
+		"workflow automation",
+		"data enrichment",
+		"no-code",
+		"sales prospecting",
+		"B2B leads"
 	],
 	"scripts": {
 		"build": "n8n-node build",
@@ -46,6 +68,9 @@
 	},
 	"peerDependencies": {
 		"n8n-workflow": ">=1.120.0"
+	},
+	"engines": {
+		"node": ">=20"
 	},
 	"devDependencies": {
 		"@n8n/node-cli": "0.29.0",
