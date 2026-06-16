@@ -1,14 +1,14 @@
 {
 	"name": "@seamless-oss/n8n-nodes-seamless",
-	"version": "0.2.0",
-	"description": "n8n community nodes for Seamless.ai — REST API and trigger",
+	"version": "0.3.0",
+	"description": "n8n community nodes for Seamless",
 	"license": "MIT",
 	"type": "commonjs",
 	"main": "dist/index.js",
 	"types": "dist/index.d.ts",
 	"homepage": "https://github.com/SeamlessAI/n8n-nodes-seamless",
 	"author": {
-		"name": "Rick Brenn",
+		"name": "Seamless Engineering",
 		"email": "devs@seamlesscontacts.com"
 	},
 	"repository": {

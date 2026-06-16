@@ -10,7 +10,7 @@
  *   MCP_API_KEY   - API key for authentication (required)
  */
 
-const MCP_BASE_URL = process.env.MCP_BASE_URL || '';
+const MCP_BASE_URL = process.env.MCP_BASE_URL || 'https://mcp.seamless.ai/mcp';
 const MCP_API_KEY = process.env.MCP_API_KEY || '';
 
 async function fetchMcpTools() {
