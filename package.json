@@ -1,6 +1,6 @@
 {
 	"name": "@seamless-oss/n8n-nodes-seamless",
-	"version": "0.6.0",
+	"version": "0.6.1",
 	"description": "n8n community nodes for Seamless",
 	"license": "MIT",
 	"type": "commonjs",
@@ -59,7 +59,7 @@
 		"dist"
 	],
 	"n8n": {
-		"n8nNodesApiVersion": "1",
+		"n8nNodesApiVersion": 1,
 		"credentials": [
 			"dist/credentials/SeamlessApi.credentials.js",
 			"dist/credentials/SeamlessOAuth2Api.credentials.js"
@@ -70,7 +70,7 @@
 		]
 	},
 	"peerDependencies": {
-		"n8n-workflow": ">=1.120.0"
+		"n8n-workflow": "*"
 	},
 	"engines": {
 		"node": ">=20"

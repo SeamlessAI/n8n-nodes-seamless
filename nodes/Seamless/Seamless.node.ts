@@ -1,10 +1,7 @@
 import {
-	type ICredentialTestFunctions,
-	type ICredentialsDecrypted,
 	type IDataObject,
 	type IExecuteFunctions,
 	type ILoadOptionsFunctions,
-	type INodeCredentialTestResult,
 	type INodeExecutionData,
 	type INodeListSearchResult,
 	type INodeType,
@@ -18,7 +15,6 @@ import {
 	seamlessMcpCallAllPages,
 	seamlessMcpCallAllOffsets,
 	seamlessMcpSearchAll,
-	testSeamlessApiCredential,
 } from './GenericFunctions';
 
 import {
@@ -1285,7 +1281,6 @@ class Seamless implements INodeType {
 			{
 				name: 'seamlessApi',
 				required: true,
-				testedBy: 'testSeamlessApi',
 				displayOptions: { show: { authentication: ['apiKey'] } },
 			},
 			{
@@ -1362,14 +1357,6 @@ class Seamless implements INodeType {
 	};
 
 	methods = {
-		credentialTest: {
-			async testSeamlessApi(
-				this: ICredentialTestFunctions,
-				credential: ICredentialsDecrypted
-			): Promise<INodeCredentialTestResult> {
-				return testSeamlessApiCredential.call(this, credential);
-			},
-		},
 		listSearch: {
 			async searchLists(
 				this: ILoadOptionsFunctions,

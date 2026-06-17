@@ -1,10 +1,8 @@
 import {
-	type ICredentialTestFunctions,
-	type ICredentialsDecrypted,
 	type IDataObject,
 	type IExecuteFunctions,
+	type IHttpRequestOptions,
 	type ILoadOptionsFunctions,
-	type INodeCredentialTestResult,
 	type IPollFunctions,
 } from 'n8n-workflow';
 
@@ -144,33 +142,6 @@ function parseMcpResponse(response: IDataObject): IDataObject {
 }
 
 /**
- * Extract a useful error message from a failed HTTP request to the MCP server.
- */
-function extractHttpError(err: unknown): string {
-	const e = err as {
-		statusCode?: number;
-		error?: IDataObject | string;
-		message?: string;
-		response?: { body?: unknown };
-	};
-	const status = e.statusCode ? `HTTP ${e.statusCode}` : '';
-	let body = '';
-	if (typeof e.error === 'object' && e.error !== null) {
-		body = JSON.stringify(e.error);
-	} else if (typeof e.error === 'string') {
-		body = e.error;
-	} else if (e.response?.body) {
-		body = typeof e.response.body === 'string'
-			? e.response.body
-			: JSON.stringify(e.response.body);
-	}
-	if (status && body) return `${status}: ${body}`;
-	if (body) return body;
-	if (status) return status;
-	return (e.message as string) || 'MCP request failed';
-}
-
-/**
  * Call an MCP tool via JSON-RPC `tools/call`.
  * Sends a single POST to the MCP endpoint and parses the JSON-RPC response envelope.
  * Supports both API Key and OAuth2 credentials.
@@ -185,35 +156,31 @@ async function seamlessMcpCall(
 	const baseUrl = String(credentials.baseUrl || 'https://mcp.seamless.ai/mcp');
 	const body = buildMcpBody(toolName, args);
 
+	const requestOptions: IHttpRequestOptions = {
+		method: 'POST',
+		url: baseUrl,
+		body,
+		json: true,
+		returnFullResponse: true,
+		ignoreHttpStatusErrors: true,
+		headers: {
+			'content-type': 'application/json',
+			accept: 'application/json, text/event-stream',
+		},
+	};
+
 	let rawResponse: IDataObject;
 	if (credentialType === 'seamlessOAuth2Api') {
-		rawResponse = (await this.helpers.requestWithAuthentication.call(
+		rawResponse = (await this.helpers.httpRequestWithAuthentication.call(
 			this,
 			'seamlessOAuth2Api',
-			{
-				method: 'POST',
-				uri: baseUrl,
-				body,
-				json: true,
-				simple: false,
-				resolveWithFullResponse: true,
-				headers: {
-					'content-type': 'application/json',
-					accept: 'application/json, text/event-stream',
-				},
-			},
+			requestOptions,
 		)) as IDataObject;
 	} else {
-		rawResponse = (await this.helpers.request({
-			method: 'POST',
-			uri: baseUrl,
-			body,
-			json: true,
-			simple: false,
-			resolveWithFullResponse: true,
+		rawResponse = (await this.helpers.httpRequest({
+			...requestOptions,
 			headers: {
-				'content-type': 'application/json',
-				accept: 'application/json, text/event-stream',
+				...requestOptions.headers,
 				Token: String(credentials.apiKey),
 			},
 		})) as IDataObject;
@@ -341,53 +308,9 @@ async function seamlessMcpSearchAll(
 	return allItems;
 }
 
-/**
- * Credential test -- validates the API key via MCP tools/list.
- * Uses legacy this.helpers.request (ICredentialTestFunctions only exposes request, not httpRequest).
- */
-async function testSeamlessApiCredential(
-	this: ICredentialTestFunctions,
-	credential: ICredentialsDecrypted,
-): Promise<INodeCredentialTestResult> {
-	const creds = credential.data as IDataObject;
-	const baseUrl = String(creds.baseUrl || 'https://mcp.seamless.ai/mcp');
-	const apiKey = String(creds.apiKey || '');
-
-	try {
-		const response = await this.helpers.request({
-			method: 'POST',
-			uri: baseUrl,
-			body: { jsonrpc: '2.0', id: 1, method: 'tools/list', params: {} },
-			json: true,
-			headers: {
-				'content-type': 'application/json',
-				accept: 'application/json, text/event-stream',
-				Token: apiKey,
-			},
-		});
-
-		if (response?.error) {
-			return {
-				status: 'Error',
-				message:
-					response.error.message || 'MCP server returned an issue',
-			};
-		}
-
-		return { status: 'OK', message: 'Connection successful' };
-	} catch (err) {
-		return {
-			status: 'Error',
-			message:
-				(err as { message?: string }).message || 'Connection failed',
-		};
-	}
-}
-
 export {
 	seamlessMcpCall,
 	seamlessMcpCallAllPages,
 	seamlessMcpCallAllOffsets,
 	seamlessMcpSearchAll,
-	testSeamlessApiCredential,
 };
