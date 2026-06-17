@@ -1,6 +1,6 @@
 {
 	"name": "@seamless-oss/n8n-nodes-seamless",
-	"version": "0.6.1",
+	"version": "0.6.2",
 	"description": "n8n community nodes for Seamless",
 	"license": "MIT",
 	"type": "commonjs",

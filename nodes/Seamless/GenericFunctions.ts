@@ -169,22 +169,11 @@ async function seamlessMcpCall(
 		},
 	};
 
-	let rawResponse: IDataObject;
-	if (credentialType === 'seamlessOAuth2Api') {
-		rawResponse = (await this.helpers.httpRequestWithAuthentication.call(
-			this,
-			'seamlessOAuth2Api',
-			requestOptions,
-		)) as IDataObject;
-	} else {
-		rawResponse = (await this.helpers.httpRequest({
-			...requestOptions,
-			headers: {
-				...requestOptions.headers,
-				Token: String(credentials.apiKey),
-			},
-		})) as IDataObject;
-	}
+	const rawResponse = (await this.helpers.httpRequestWithAuthentication.call(
+		this,
+		credentialType,
+		requestOptions,
+	)) as IDataObject;
 
 	const statusCode = rawResponse.statusCode as number | undefined;
 	const responseBody = rawResponse.body as IDataObject | string | undefined;
