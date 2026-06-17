@@ -95,16 +95,6 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 };
 
 /**
- * Look up the MCP tool name for a given n8n resource/operation pair.
- * Throws if no mapping exists.
- */
-export function getToolName(resource: string, operation: string): string {
-	const tool = TOOL_MAP[resource]?.[operation];
-	if (!tool) throw new Error(`No MCP tool for ${resource}/${operation}`);
-	return tool;
-}
-
-/**
  * Returns a flat set of all MCP tool names referenced by the node.
  * Duplicates (e.g. get + getMany mapping to the same tool) are deduplicated.
  */

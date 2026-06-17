@@ -42,10 +42,10 @@ async function fetchMcpTools() {
 }
 
 async function loadLocalMapping() {
-	const { TOOL_MAP, getAllMcpToolNames } = await import(
+	const { getAllMcpToolNames } = await import(
 		'../tmp-build/nodes/Seamless/toolMapping.js'
 	);
-	return { TOOL_MAP, localToolNames: getAllMcpToolNames() };
+	return { localToolNames: getAllMcpToolNames() };
 }
 
 async function main() {

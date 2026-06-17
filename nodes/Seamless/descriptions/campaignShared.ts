@@ -126,7 +126,7 @@ export const campaignStepUpdateFields: INodeProperties[] = [
 	campaignStepTemplateDataField,
 ];
 
-export const campaignStepInlineValues: INodeProperties[] = [
+const campaignStepInlineValues: INodeProperties[] = [
 	{
 		displayName: 'Type',
 		name: 'type',
