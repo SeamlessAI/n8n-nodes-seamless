@@ -68,6 +68,26 @@ function extractRlId(
 	return Number(raw);
 }
 
+/**
+ * Resolve campaignId or campaignIdentifier from a resource locator parameter.
+ */
+function extractCampaignTarget(
+	ctx: IExecuteFunctions,
+	paramName: string,
+	itemIndex: number
+): IDataObject {
+	const raw = ctx.getNodeParameter(paramName, itemIndex) as
+		| number
+		| { mode?: string; value: number | string };
+	if (typeof raw === 'object' && raw !== null && 'value' in raw) {
+		if (raw.mode === 'identifier') {
+			return { campaignIdentifier: String(raw.value) };
+		}
+		return { campaignId: Number(raw.value) };
+	}
+	return { campaignId: Number(raw) };
+}
+
 const CAMPAIGN_SIMPLIFIED_KEYS = [
 	'id',
 	'name',
@@ -235,6 +255,32 @@ function dropZeroIds(obj: IDataObject, keys: string[]): void {
 	for (const k of keys) {
 		if (obj[k] === 0) delete obj[k];
 	}
+}
+
+function buildCampaignStepPayload(fields: IDataObject): IDataObject {
+	const body: IDataObject = {
+		type: fields.type,
+		name: fields.name,
+		dueDay: fields.dueDay,
+	};
+	const optional = cleanObj({ ...fields });
+	delete optional.type;
+	delete optional.name;
+	delete optional.dueDay;
+	const templateData = unwrapTemplateData(optional.templateData);
+	delete optional.templateData;
+	dropZeroIds(optional, ['templateId']);
+	Object.assign(body, optional);
+	if (templateData) body.templateData = templateData;
+	return body;
+}
+
+function parseInlineCampaignSteps(raw: unknown): IDataObject[] {
+	if (!raw || typeof raw !== 'object') return [];
+	const collection = raw as IDataObject;
+	const steps = collection.step;
+	if (!Array.isArray(steps) || !steps.length) return [];
+	return steps.map((step) => buildCampaignStepPayload(step as IDataObject));
 }
 
 // ─── Contact ────────────────────────────────────────────────────────────────
@@ -580,12 +626,20 @@ async function executeCampaign(
 			const ids = csvToNumberArray(additionalFields.emailAccountIds);
 			if (ids.length) body.emailAccountIds = ids;
 		}
+		if (additionalFields.contactIds) {
+			const ids = csvToNumberArray(additionalFields.contactIds);
+			if (ids.length) body.contactIds = ids;
+		}
+		const steps = parseInlineCampaignSteps(
+			this.getNodeParameter('steps', i, {}),
+		);
+		if (steps.length) body.steps = steps;
 		return seamlessMcpCall.call(this, 'create_campaign', body);
 	}
 	if (operation === 'get') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const result = await seamlessMcpCall.call(this, 'list_campaigns', { campaignId: id });
+		const result = await seamlessMcpCall.call(this, 'list_campaigns', target);
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
 	if (operation === 'getMany') {
@@ -598,13 +652,13 @@ async function executeCampaign(
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
 	if (operation === 'update') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
 			{},
 		) as IDataObject;
-		const body: IDataObject = { campaignId: id };
+		const body: IDataObject = { ...target };
 		if (updateFields.name) body.name = updateFields.name;
 		if (updateFields.isPublic !== undefined)
 			body.isPublic = updateFields.isPublic;
@@ -615,53 +669,53 @@ async function executeCampaign(
 		return seamlessMcpCall.call(this, 'update_campaign', body);
 	}
 	if (operation === 'delete') {
-		const id = extractRlId(this, 'campaignId', i);
-		await seamlessMcpCall.call(this, 'delete_campaign', { campaignId: id });
+		const target = extractCampaignTarget(this, 'campaignId', i);
+		await seamlessMcpCall.call(this, 'delete_campaign', target);
 		return { deleted: true };
 	}
 	if (operation === 'executeAction') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const action = this.getNodeParameter('action', i) as string;
 		return seamlessMcpCall.call(
 			this,
 			'execute_campaign_action',
-			{ campaignId: id, action },
+			{ ...target, action },
 		);
 	}
 	if (operation === 'clone') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const name = this.getNodeParameter('name', i) as string;
 		return seamlessMcpCall.call(this, 'clone_campaign', {
-			campaignId: id,
+			...target,
 			name,
 		});
 	}
 	if (operation === 'addContacts') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const contactIds = csvToNumberArray(
 			this.getNodeParameter('contactIds', i),
 		);
 		return seamlessMcpCall.call(
 			this,
 			'add_contacts_to_campaign',
-			{ campaignId: id, contactIds },
+			{ ...target, contactIds },
 		);
 	}
 	if (operation === 'removeContacts') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const contactIds = csvToNumberArray(
 			this.getNodeParameter('contactIds', i),
 		);
 		return seamlessMcpCall.call(
 			this,
 			'remove_contacts_from_campaign',
-			{ campaignId: id, contactIds },
+			{ ...target, contactIds },
 		);
 	}
 	if (operation === 'getContacts') {
-		const id = extractRlId(this, 'campaignId', i);
+		const target = extractCampaignTarget(this, 'campaignId', i);
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
-		const args: IDataObject = { campaignId: id };
+		const args: IDataObject = { ...target };
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
 
@@ -683,8 +737,8 @@ async function executeCampaign(
 		return (response.data || response) as IDataObject[];
 	}
 	if (operation === 'getMetrics') {
-		const id = extractRlId(this, 'campaignId', i);
-		return seamlessMcpCall.call(this, 'get_campaign_metrics', { campaignId: id });
+		const target = extractCampaignTarget(this, 'campaignId', i);
+		return seamlessMcpCall.call(this, 'get_campaign_metrics', target);
 	}
 	return {};
 }
@@ -696,33 +750,25 @@ async function executeCampaignStep(
 	operation: string,
 	i: number
 ): Promise<IDataObject | IDataObject[]> {
-	const campaignId = extractRlId(this, 'campaignId', i);
+	const campaignTarget = extractCampaignTarget(this, 'campaignId', i);
 
 	if (operation === 'create') {
-		const body: IDataObject = {
-			campaignId,
+		const body = buildCampaignStepPayload({
 			type: this.getNodeParameter('type', i) as string,
 			name: this.getNodeParameter('name', i) as string,
 			dueDay: this.getNodeParameter('dueDay', i) as number,
-		};
-		const additionalFields = this.getNodeParameter(
-			'additionalFields',
-			i,
-			{},
-		) as IDataObject;
-		const cleaned = cleanObj(additionalFields);
-		const templateData = unwrapTemplateData(cleaned.templateData);
-		delete cleaned.templateData;
-		dropZeroIds(cleaned, ['templateId']);
-		Object.assign(body, cleaned);
-		if (templateData) body.templateData = templateData;
-		return seamlessMcpCall.call(this, 'create_campaign_step', body);
+			...(this.getNodeParameter('additionalFields', i, {}) as IDataObject),
+		});
+		return seamlessMcpCall.call(this, 'create_campaign_step', {
+			...campaignTarget,
+			...body,
+		});
 	}
 	if (operation === 'getMany') {
 		return seamlessMcpCall.call(
 			this,
 			'list_campaign_steps',
-			{ campaignId },
+			campaignTarget,
 		);
 	}
 	if (operation === 'update') {
@@ -746,7 +792,7 @@ async function executeCampaignStep(
 		await seamlessMcpCall.call(
 			this,
 			'delete_campaign_step',
-			{ campaignStepId: stepId, campaignId },
+			{ campaignStepId: stepId, ...campaignTarget },
 		);
 		return { deleted: true };
 	}

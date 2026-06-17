@@ -1,0 +1,234 @@
+{
+  "name": "TEST: Campaign Step Lifecycle",
+  "nodes": [
+    {
+      "id": "33333333-3333-4333-8333-333333333301",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333302",
+      "name": "Create Campaign Shell",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "create",
+        "name": "={{ `n8n Step Lifecycle Test ${$now.toISO()}` }}"
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333303",
+      "name": "Create Step",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [480, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaignStep",
+        "operation": "create",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Create Campaign Shell\").first().json.campaign?.campaignId || $(\"Create Campaign Shell\").first().json.campaignId || $(\"Create Campaign Shell\").first().json.id) }}"
+        },
+        "type": "call",
+        "name": "Call Step",
+        "dueDay": 2,
+        "additionalFields": {
+          "description": "Lifecycle test call step"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333304",
+      "name": "Extract Step ID",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const created = $(\"Create Step\").first().json;\nconst step = created.campaignStep || created.step || created.data || created;\nconst stepId = step.campaignStepId || step.id;\nconst campaignId = String($(\"Create Campaign Shell\").first().json.campaign?.campaignId || $(\"Create Campaign Shell\").first().json.campaignId || $(\"Create Campaign Shell\").first().json.id);\nif (!stepId) throw new Error('No step id: ' + JSON.stringify(created));\nreturn [{ json: { stepId: Number(stepId), campaignId } }];"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333305",
+      "name": "Update Step",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [960, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaignStep",
+        "operation": "update",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Extract Step ID\").first().json.campaignId }}"
+        },
+        "stepId": "={{ $(\"Extract Step ID\").first().json.stepId }}",
+        "dueDay": 3,
+        "updateFields": {
+          "name": "Updated Call Step",
+          "description": "Updated via n8n parity test"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333306",
+      "name": "Pause Step",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1200, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaignStep",
+        "operation": "executeAction",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Extract Step ID\").first().json.campaignId }}"
+        },
+        "stepId": "={{ $(\"Extract Step ID\").first().json.stepId }}",
+        "action": "PAUSE"
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333307",
+      "name": "Resume Step",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1440, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaignStep",
+        "operation": "executeAction",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Extract Step ID\").first().json.campaignId }}"
+        },
+        "stepId": "={{ $(\"Extract Step ID\").first().json.stepId }}",
+        "action": "RESUME"
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333308",
+      "name": "Delete Step",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1680, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaignStep",
+        "operation": "delete",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Extract Step ID\").first().json.campaignId }}"
+        },
+        "stepId": "={{ $(\"Extract Step ID\").first().json.stepId }}"
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "33333333-3333-4333-8333-333333333309",
+      "name": "Delete Campaign",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1920, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "delete",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $(\"Extract Step ID\").first().json.campaignId }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Create Campaign Shell", "type": "main", "index": 0 }]]
+    },
+    "Create Campaign Shell": {
+      "main": [[{ "node": "Create Step", "type": "main", "index": 0 }]]
+    },
+    "Create Step": {
+      "main": [[{ "node": "Extract Step ID", "type": "main", "index": 0 }]]
+    },
+    "Extract Step ID": {
+      "main": [[{ "node": "Update Step", "type": "main", "index": 0 }]]
+    },
+    "Update Step": {
+      "main": [[{ "node": "Pause Step", "type": "main", "index": 0 }]]
+    },
+    "Pause Step": {
+      "main": [[{ "node": "Resume Step", "type": "main", "index": 0 }]]
+    },
+    "Resume Step": {
+      "main": [[{ "node": "Delete Step", "type": "main", "index": 0 }]]
+    },
+    "Delete Step": {
+      "main": [[{ "node": "Delete Campaign", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

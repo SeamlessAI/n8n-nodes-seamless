@@ -1,5 +1,10 @@
 import { type INodeProperties } from 'n8n-workflow';
 
+import {
+	campaignCreateStepsField,
+	campaignResourceLocatorModes,
+} from './campaignShared';
+
 const campaignOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -87,7 +92,7 @@ const campaignFields: INodeProperties[] = [
 		type: 'resourceLocator',
 		default: { mode: 'list', value: '' },
 		required: true,
-		description: 'The campaign to operate on',
+		description: 'The campaign to operate on (by list, numeric ID, or identifier slug)',
 		displayOptions: {
 			show: {
 				resource: ['campaign'],
@@ -104,29 +109,7 @@ const campaignFields: INodeProperties[] = [
 				],
 			},
 		},
-		modes: [
-			{
-				displayName: 'From List',
-				name: 'list',
-				type: 'list',
-				typeOptions: { searchListMethod: 'searchCampaigns', searchable: true },
-			},
-			{
-				displayName: 'By ID',
-				name: 'id',
-				type: 'string',
-				placeholder: 'e.g. 12345',
-				validation: [
-					{
-						type: 'regex',
-						properties: {
-							regex: '^[0-9]+$',
-							errorMessage: 'Must be a numeric ID',
-						},
-					},
-				],
-			},
-		],
+		modes: campaignResourceLocatorModes,
 	},
 	// ------ Create ------
 	{
@@ -140,6 +123,7 @@ const campaignFields: INodeProperties[] = [
 			show: { resource: ['campaign'], operation: ['create', 'clone'] },
 		},
 	},
+	campaignCreateStepsField,
 	{
 		displayName: 'Additional Fields',
 		name: 'additionalFields',
@@ -150,6 +134,14 @@ const campaignFields: INodeProperties[] = [
 			show: { resource: ['campaign'], operation: ['create'] },
 		},
 		options: [
+			{
+				displayName: 'Contact IDs',
+				name: 'contactIds',
+				type: 'string',
+				default: '',
+				description:
+					'Comma-separated saved contact IDs (from Get My Contacts) to add inline. Max 500. Preferred over a separate Add Contacts call when building a new campaign.',
+			},
 			{
 				displayName: 'Email Account IDs',
 				name: 'emailAccountIds',

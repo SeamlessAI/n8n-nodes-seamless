@@ -1,0 +1,267 @@
+{
+  "name": "TEST: Campaign Create Parity",
+  "nodes": [
+    {
+      "id": "11111111-1111-4111-8111-111111111101",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111102",
+      "name": "Get Email Account",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "emailAccount",
+        "operation": "getMany",
+        "searchText": "jon@seamlesscontacts.com",
+        "returnAll": false,
+        "limit": 1
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111103",
+      "name": "Get One Contact",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [480, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "contact",
+        "operation": "getMany",
+        "returnAll": false,
+        "limit": 1
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111104",
+      "name": "Prepare Test Data",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [720, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const emailAccount = $(\"Get Email Account\").first().json;\nconst contact = $(\"Get One Contact\").first().json;\nconst contactId = contact.contactId || contact.id;\nif (!contactId) {\n  throw new Error('No saved contact found. Save at least one contact in Seamless first.');\n}\nconst emailAccountId = emailAccount.emailAccountId || emailAccount.id;\nif (!emailAccountId) {\n  throw new Error('No email account found for jon@seamlesscontacts.com');\n}\nconst ts = new Date().toISOString().replace(/[:.]/g, '-');\nreturn [{\n  json: {\n    campaignName: `n8n Campaign Parity Test ${ts}`,\n    emailAccountId: String(emailAccountId),\n    contactIds: String(contactId),\n  },\n}];"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111105",
+      "name": "Create Campaign Inline",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [960, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "create",
+        "name": "={{ $(\"Prepare Test Data\").first().json.campaignName }}",
+        "steps": {
+          "step": [
+            {
+              "type": "custom",
+              "name": "Intro Task",
+              "dueDay": 1,
+              "description": "Parity test custom step"
+            },
+            {
+              "type": "manual-email",
+              "name": "Follow-up Email",
+              "dueDay": 3,
+              "templateData": {
+                "value": {
+                  "subject": "Quick follow-up",
+                  "template": "<p>Hi there,</p><p>Parity test email step.</p>"
+                }
+              }
+            }
+          ]
+        },
+        "additionalFields": {
+          "emailAccountIds": "={{ $(\"Prepare Test Data\").first().json.emailAccountId }}",
+          "contactIds": "={{ $(\"Prepare Test Data\").first().json.contactIds }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111106",
+      "name": "Get Campaign",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1200, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "get",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Create Campaign Inline\").first().json.campaign?.campaignId || $(\"Create Campaign Inline\").first().json.campaignId || $(\"Create Campaign Inline\").first().json.id) }}"
+        },
+        "simplify": true
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111107",
+      "name": "List Campaign Steps",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1440, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaignStep",
+        "operation": "getMany",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Create Campaign Inline\").first().json.campaign?.campaignId || $(\"Create Campaign Inline\").first().json.campaignId || $(\"Create Campaign Inline\").first().json.id) }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111108",
+      "name": "Get Metrics",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1680, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "getMetrics",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Create Campaign Inline\").first().json.campaign?.campaignId || $(\"Create Campaign Inline\").first().json.campaignId || $(\"Create Campaign Inline\").first().json.id) }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111109",
+      "name": "Get Campaign Contacts",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1920, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "getContacts",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Create Campaign Inline\").first().json.campaign?.campaignId || $(\"Create Campaign Inline\").first().json.campaignId || $(\"Create Campaign Inline\").first().json.id) }}"
+        },
+        "returnAll": false,
+        "limit": 10
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "11111111-1111-4111-8111-111111111110",
+      "name": "Delete Campaign",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [2160, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "delete",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Create Campaign Inline\").first().json.campaign?.campaignId || $(\"Create Campaign Inline\").first().json.campaignId || $(\"Create Campaign Inline\").first().json.id) }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Get Email Account", "type": "main", "index": 0 }]]
+    },
+    "Get Email Account": {
+      "main": [[{ "node": "Get One Contact", "type": "main", "index": 0 }]]
+    },
+    "Get One Contact": {
+      "main": [[{ "node": "Prepare Test Data", "type": "main", "index": 0 }]]
+    },
+    "Prepare Test Data": {
+      "main": [[{ "node": "Create Campaign Inline", "type": "main", "index": 0 }]]
+    },
+    "Create Campaign Inline": {
+      "main": [[{ "node": "Get Campaign", "type": "main", "index": 0 }]]
+    },
+    "Get Campaign": {
+      "main": [[{ "node": "List Campaign Steps", "type": "main", "index": 0 }]]
+    },
+    "List Campaign Steps": {
+      "main": [[{ "node": "Get Metrics", "type": "main", "index": 0 }]]
+    },
+    "Get Metrics": {
+      "main": [[{ "node": "Get Campaign Contacts", "type": "main", "index": 0 }]]
+    },
+    "Get Campaign Contacts": {
+      "main": [[{ "node": "Delete Campaign", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}

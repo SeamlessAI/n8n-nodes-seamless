@@ -1,0 +1,196 @@
+{
+  "name": "TEST: Campaign Identifier",
+  "nodes": [
+    {
+      "id": "22222222-2222-4222-8222-222222222201",
+      "name": "Manual Trigger",
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222202",
+      "name": "Create Simple Campaign",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [240, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "create",
+        "name": "={{ `n8n Identifier Test ${$now.toISO()}` }}"
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222203",
+      "name": "Extract Identifier",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [480, 0],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "const created = $(\"Create Simple Campaign\").first().json;\nconst campaign = created.campaign || created.data || created;\nconst campaignId = campaign.campaignId || campaign.id;\nconst identifier = campaign.identifier || campaign.campaignIdentifier;\nif (!identifier) {\n  throw new Error('No identifier in create response: ' + JSON.stringify(created));\n}\nreturn [{ json: { campaignId: String(campaignId), identifier: String(identifier) } }];"
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222204",
+      "name": "Get By Identifier",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [720, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "get",
+        "campaignId": {
+          "__rl": true,
+          "mode": "identifier",
+          "value": "={{ $(\"Extract Identifier\").first().json.identifier }}"
+        },
+        "simplify": true
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222205",
+      "name": "Update By Identifier",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [960, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "update",
+        "campaignId": {
+          "__rl": true,
+          "mode": "identifier",
+          "value": "={{ $(\"Extract Identifier\").first().json.identifier }}"
+        },
+        "updateFields": {
+          "name": "={{ `n8n Identifier Test Updated ${$now.toISO()}` }}",
+          "isPublic": false
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222206",
+      "name": "Clone By Identifier",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1200, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "clone",
+        "campaignId": {
+          "__rl": true,
+          "mode": "identifier",
+          "value": "={{ $(\"Extract Identifier\").first().json.identifier }}"
+        },
+        "name": "={{ `n8n Identifier Clone ${$now.toISO()}` }}"
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222207",
+      "name": "Delete Original",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1440, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "delete",
+        "campaignId": {
+          "__rl": true,
+          "mode": "identifier",
+          "value": "={{ $(\"Extract Identifier\").first().json.identifier }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    },
+    {
+      "id": "22222222-2222-4222-8222-222222222208",
+      "name": "Delete Clone",
+      "type": "@seamless-oss/n8n-nodes-seamless.seamless",
+      "typeVersion": 1,
+      "position": [1680, 0],
+      "parameters": {
+        "authentication": "oAuth2",
+        "resource": "campaign",
+        "operation": "delete",
+        "campaignId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ String($(\"Clone By Identifier\").first().json.campaign?.campaignId || $(\"Clone By Identifier\").first().json.campaignId || $(\"Clone By Identifier\").first().json.id) }}"
+        }
+      },
+      "credentials": {
+        "seamlessOAuth2Api": {
+          "id": "NFwvVt43SCGbIL7e",
+          "name": "Seamless account"
+        }
+      },
+      "executeOnce": true
+    }
+  ],
+  "connections": {
+    "Manual Trigger": {
+      "main": [[{ "node": "Create Simple Campaign", "type": "main", "index": 0 }]]
+    },
+    "Create Simple Campaign": {
+      "main": [[{ "node": "Extract Identifier", "type": "main", "index": 0 }]]
+    },
+    "Extract Identifier": {
+      "main": [[{ "node": "Get By Identifier", "type": "main", "index": 0 }]]
+    },
+    "Get By Identifier": {
+      "main": [[{ "node": "Update By Identifier", "type": "main", "index": 0 }]]
+    },
+    "Update By Identifier": {
+      "main": [[{ "node": "Clone By Identifier", "type": "main", "index": 0 }]]
+    },
+    "Clone By Identifier": {
+      "main": [[{ "node": "Delete Original", "type": "main", "index": 0 }]]
+    },
+    "Delete Original": {
+      "main": [[{ "node": "Delete Clone", "type": "main", "index": 0 }]]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  }
+}
