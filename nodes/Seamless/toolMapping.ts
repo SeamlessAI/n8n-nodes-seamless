@@ -1,7 +1,8 @@
 /**
  * Maps n8n resource/operation pairs to MCP tool names.
- * Used by the GitHub Action sync workflow to validate that every
- * MCP tool in the catalog has a corresponding n8n resource/operation.
+ * Used at runtime by seamlessMcpCall and by the GitHub Action sync
+ * workflow to validate that every MCP tool in the catalog has a
+ * corresponding n8n resource/operation.
  */
 export const TOOL_MAP: Record<string, Record<string, string>> = {
 	contact: {
@@ -92,6 +93,16 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 		getMany: 'list_email_footers',
 	},
 };
+
+/**
+ * Look up the MCP tool name for a given n8n resource/operation pair.
+ * Throws if no mapping exists.
+ */
+export function getToolName(resource: string, operation: string): string {
+	const tool = TOOL_MAP[resource]?.[operation];
+	if (!tool) throw new Error(`No MCP tool for ${resource}/${operation}`);
+	return tool;
+}
 
 /**
  * Returns a flat set of all MCP tool names referenced by the node.
