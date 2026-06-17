@@ -44,6 +44,9 @@
 		"dev": "n8n-node dev",
 		"lint": "eslint && n8n-node lint",
 		"lint:fix": "eslint --fix && n8n-node lint --fix",
+		"refit": "refit",
+		"update": "refit up -i",
+		"wizard": "refit w",
 		"precommit": "lint-staged",
 		"release": "n8n-node release"
 	},
@@ -81,6 +84,7 @@
 		"lint-staged": "16.4.0",
 		"n8n-workflow": "2.16.0",
 		"prettier": "3.8.3",
+		"refit": "2.0.0",
 		"typescript": "6.0.3",
 		"typescript-eslint": "8.59.2"
 	}
