@@ -4,6 +4,8 @@ import {
 	type IHttpRequestOptions,
 	type ILoadOptionsFunctions,
 	type IPollFunctions,
+	type JsonObject,
+	NodeApiError,
 } from 'n8n-workflow';
 
 /**
@@ -182,7 +184,16 @@ async function seamlessMcpCall(
 		const detail = typeof responseBody === 'string'
 			? responseBody
 			: JSON.stringify(responseBody);
-		throw new Error(`MCP HTTP ${statusCode}: ${detail}`);
+		const error = {
+			statusCode,
+			httpCode: String(statusCode),
+			message: detail,
+		} as JsonObject;
+		throw new NodeApiError(this.getNode(), error, {
+			httpCode: String(statusCode),
+			message: `MCP HTTP ${statusCode}`,
+			description: detail,
+		});
 	}
 
 	const response = (typeof responseBody === 'object' && responseBody !== null

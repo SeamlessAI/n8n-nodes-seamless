@@ -1313,7 +1313,7 @@ class Seamless implements INodeType {
 					{ name: 'Campaign Step', value: 'campaignStep' },
 					{ name: 'Company', value: 'company' },
 					{ name: 'Contact', value: 'contact' },
-					{ name: 'Credits', value: 'credits' },
+					{ name: 'Credit', value: 'credits' },
 					{ name: 'Email', value: 'email' },
 					{ name: 'Email Account', value: 'emailAccount' },
 					{ name: 'Email Footer', value: 'emailFooter' },

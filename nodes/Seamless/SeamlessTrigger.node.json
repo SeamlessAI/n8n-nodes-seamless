@@ -1,11 +1,8 @@
 {
-	"node": "n8n-nodes-seamless.seamlessTrigger",
+	"node": "@seamless-oss/n8n-nodes-seamless.seamlessTrigger",
 	"nodeVersion": "1.0",
 	"codexVersion": "1.0",
 	"categories": ["Sales"],
-	"subcategories": {
-		"Sales": ["Lead Management"]
-	},
 	"alias": ["seamless", "seamless.ai", "leads", "contacts", "enrichment", "prospecting"],
 	"resources": {
 		"primaryDocumentation": [
