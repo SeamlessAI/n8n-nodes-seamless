@@ -7,6 +7,7 @@ import {
 	type INodeType,
 	type INodeTypeDescription,
 	NodeConnectionTypes,
+	NodeApiError,
 	NodeOperationError,
 } from 'n8n-workflow';
 
@@ -1569,6 +1570,7 @@ class Seamless implements INodeType {
 					});
 					continue;
 				}
+				if (error instanceof NodeApiError) throw error;
 				throw new NodeOperationError(
 					this.getNode(),
 					(error as Error).message,
