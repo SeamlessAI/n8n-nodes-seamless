@@ -1,0 +1,4 @@
+# Dependabot PRs touch these paths; assigns Jon Estep as reviewer
+/package.json @jdestep93
+/package-lock.json @jdestep93
+/.github/ @jdestep93
