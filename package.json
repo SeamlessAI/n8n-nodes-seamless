@@ -85,7 +85,7 @@
 		"n8n-workflow": "2.16.0",
 		"prettier": "3.8.4",
 		"refit": "2.0.0",
-		"typescript": "6.0.3",
+		"typescript": "7.0.2",
 		"typescript-eslint": "8.61.1"
 	}
 }
