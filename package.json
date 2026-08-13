@@ -78,7 +78,7 @@
 	"devDependencies": {
 		"@n8n/node-cli": "0.43.2",
 		"@types/node": "25.9.3",
-		"eslint": "9.29.0",
+		"eslint": "10.8.1",
 		"eslint-plugin-n8n-nodes-base": "2.0.0",
 		"globals": "17.9.0",
 		"lint-staged": "17.3.0",
