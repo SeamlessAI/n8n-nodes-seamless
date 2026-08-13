@@ -10,8 +10,18 @@ updates:
         update-types:
           - minor
           - patch
+      # Majors are grouped separately so breaking changes get reviewed as a set
+      # instead of arriving as one PR per package.
+      dev-dependencies-major:
+        dependency-type: development
+        update-types:
+          - major
 
   - package-ecosystem: github-actions
     directory: /
     schedule:
       interval: weekly
+    groups:
+      github-actions:
+        patterns:
+          - '*'
