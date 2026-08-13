@@ -158,44 +158,34 @@ async function seamlessMcpCall(
 	const baseUrl = String(credentials.baseUrl || 'https://mcp.seamless.ai/mcp');
 	const body = buildMcpBody(toolName, args);
 
+	// HTTP status errors must propagate as thrown errors (no `ignoreHttpStatusErrors`):
+	// n8n's OAuth2 helper only refreshes an expired access token when the request
+	// throws with a 401, then retries with the renewed token automatically.
 	const requestOptions: IHttpRequestOptions = {
 		method: 'POST',
 		url: baseUrl,
 		body,
 		json: true,
 		returnFullResponse: true,
-		ignoreHttpStatusErrors: true,
 		headers: {
 			'content-type': 'application/json',
 			accept: 'application/json, text/event-stream',
 		},
 	};
 
-	const rawResponse = (await this.helpers.httpRequestWithAuthentication.call(
-		this,
-		credentialType,
-		requestOptions,
-	)) as IDataObject;
-
-	const statusCode = rawResponse.statusCode as number | undefined;
-	const responseBody = rawResponse.body as IDataObject | string | undefined;
-
-	if (statusCode && statusCode >= 400) {
-		const detail = typeof responseBody === 'string'
-			? responseBody
-			: JSON.stringify(responseBody);
-		const error = {
-			statusCode,
-			httpCode: String(statusCode),
-			message: detail,
-		} as JsonObject;
-		throw new NodeApiError(this.getNode(), error, {
-			httpCode: String(statusCode),
-			message: `MCP HTTP ${statusCode}`,
-			description: detail,
-		});
+	let rawResponse: IDataObject;
+	try {
+		rawResponse = (await this.helpers.httpRequestWithAuthentication.call(
+			this,
+			credentialType,
+			requestOptions,
+		)) as IDataObject;
+	} catch (error) {
+		if (error instanceof NodeApiError) throw error;
+		throw new NodeApiError(this.getNode(), error as JsonObject);
 	}
 
+	const responseBody = rawResponse.body as IDataObject | string | undefined;
 	const response = (typeof responseBody === 'object' && responseBody !== null
 		? responseBody
 		: rawResponse) as IDataObject;
