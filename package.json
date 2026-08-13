@@ -76,16 +76,16 @@
 		"node": ">=20"
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "0.35.1",
+		"@n8n/node-cli": "0.43.2",
 		"@types/node": "25.9.3",
 		"eslint": "9.29.0",
 		"eslint-plugin-n8n-nodes-base": "1.16.7",
-		"globals": "17.6.0",
-		"lint-staged": "17.0.7",
+		"globals": "17.9.0",
+		"lint-staged": "17.3.0",
 		"n8n-workflow": "2.16.0",
-		"prettier": "3.8.4",
+		"prettier": "3.9.6",
 		"refit": "2.0.0",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.61.1"
+		"typescript-eslint": "8.67.0"
 	}
 }
