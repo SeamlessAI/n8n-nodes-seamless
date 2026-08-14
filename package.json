@@ -1,6 +1,6 @@
 {
 	"name": "@seamless-oss/n8n-nodes-seamless",
-	"version": "0.6.7",
+	"version": "0.6.8",
 	"description": "n8n community nodes for Seamless",
 	"license": "MIT",
 	"type": "commonjs",
@@ -76,7 +76,7 @@
 		"node": ">=20"
 	},
 	"devDependencies": {
-		"@n8n/node-cli": "0.35.1",
+		"@n8n/node-cli": "0.43.4",
 		"@types/node": "25.9.3",
 		"eslint": "9.29.0",
 		"eslint-plugin-n8n-nodes-base": "1.16.7",

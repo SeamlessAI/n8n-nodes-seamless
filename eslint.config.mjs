@@ -1,18 +1,14 @@
-import tseslint from 'typescript-eslint';
-import n8nNodesBase from 'eslint-plugin-n8n-nodes-base';
+import { config } from '@n8n/node-cli/eslint';
 
 export default [
-	{ ignores: ['dist/**', 'node_modules/**'] },
-	...tseslint.configs.recommended,
+	...config,
 	{
-		files: ['**/*.ts'],
-		plugins: { 'n8n-nodes-base': n8nNodesBase },
-		rules: {
-			'@typescript-eslint/no-explicit-any': 'warn',
-			'@typescript-eslint/no-unused-vars': [
-				'warn',
-				{ argsIgnorePattern: '^_' },
-			],
-		},
+		// The submission review scanner runs a newer
+		// @n8n/eslint-plugin-community-nodes than @n8n/node-cli bundles, and the
+		// newer rule rejects `usableAsTool` on trigger nodes while the bundled one
+		// demands it. Trigger nodes cannot be invoked as AI tools, so follow the
+		// scanner and turn the outdated local rule off for triggers.
+		files: ['**/*Trigger.node.ts'],
+		rules: { '@n8n/community-nodes/node-usable-as-tool': 'off' },
 	},
 ];

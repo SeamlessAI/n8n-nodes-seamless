@@ -6,6 +6,7 @@ import {
 	type INodeListSearchResult,
 	type INodeType,
 	type INodeTypeDescription,
+	type JsonObject,
 	NodeConnectionTypes,
 	NodeApiError,
 	NodeOperationError,
@@ -1570,7 +1571,13 @@ class Seamless implements INodeType {
 					});
 					continue;
 				}
-				if (error instanceof NodeApiError) throw error;
+				// NodeApiError's constructor returns an already-wrapped error
+				// untouched, so this preserves the httpCode from the MCP call
+				// rather than flattening it into a NodeOperationError.
+				const errorResponse = error as JsonObject;
+				if (error instanceof NodeApiError) {
+					throw new NodeApiError(this.getNode(), errorResponse);
+				}
 				throw new NodeOperationError(
 					this.getNode(),
 					(error as Error).message,
