@@ -10,9 +10,8 @@ export const CAMPAIGN_STEP_TYPE_OPTIONS = [
 	{ name: 'Manual Email', value: 'manual-email' },
 ];
 
-// Kept nested under a literal `modes` key: resource locator modes have no
-// `default`, and n8n-nodes-base/node-param-default-missing only grants that
-// exemption to objects it sees written directly inside `modes`.
+// Modes have no `default`; the lint exemption for that only applies to objects
+// written directly under a `modes` key.
 const campaignResourceLocator = {
 	modes: [
 		{

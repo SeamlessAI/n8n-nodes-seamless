@@ -1571,9 +1571,7 @@ class Seamless implements INodeType {
 					});
 					continue;
 				}
-				// NodeApiError's constructor returns an already-wrapped error
-				// untouched, so this preserves the httpCode from the MCP call
-				// rather than flattening it into a NodeOperationError.
+				// Re-wrapping returns the same instance, keeping httpCode intact.
 				const errorResponse = error as JsonObject;
 				if (error instanceof NodeApiError) {
 					throw new NodeApiError(this.getNode(), errorResponse);
