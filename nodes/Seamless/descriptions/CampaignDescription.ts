@@ -197,13 +197,41 @@ const campaignFields: INodeProperties[] = [
 			show: { resource: ['campaign'], operation: ['executeAction'] },
 		},
 		options: [
-			{ name: 'Archive', value: 'ARCHIVE' },
-			{ name: 'Complete', value: 'COMPLETE' },
-			{ name: 'Delete', value: 'DELETE' },
-			{ name: 'Pause', value: 'PAUSE' },
-			{ name: 'Resume', value: 'RESUME' },
-			{ name: 'Start', value: 'START' },
-			{ name: 'Unarchive', value: 'UNARCHIVE' },
+			{
+				name: 'Archive',
+				value: 'ARCHIVE',
+				action: 'Archive campaign',
+			},
+			{
+				name: 'Complete',
+				value: 'COMPLETE',
+				action: 'Complete campaign',
+			},
+			{
+				name: 'Delete',
+				value: 'DELETE',
+				action: 'Delete campaign',
+			},
+			{
+				name: 'Pause',
+				value: 'PAUSE',
+				action: 'Pause campaign',
+			},
+			{
+				name: 'Resume',
+				value: 'RESUME',
+				action: 'Resume campaign',
+			},
+			{
+				name: 'Start',
+				value: 'START',
+				action: 'Start campaign',
+			},
+			{
+				name: 'Unarchive',
+				value: 'UNARCHIVE',
+				action: 'Unarchive campaign',
+			},
 		],
 	},
 	// ------ Add / Remove Contacts ------
@@ -236,8 +264,8 @@ const campaignFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 10,
-		description: 'Max number of results to return (max 25)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 25 },
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['getMany'] },
@@ -270,8 +298,8 @@ const campaignFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 25,
-		description: 'Max number of results to return (max 50)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
 			show: {

@@ -118,14 +118,14 @@ const companyFields: INodeProperties[] = [
 				default: [],
 				options: [
 					{ name: '$0 - $100K', value: '$0 - $100K' },
-					{ name: '$1B+', value: '$1B+' },
-					{ name: '$1M - $5M', value: '$1M - $5M' },
 					{ name: '$100K - $1M', value: '$100K - $1M' },
 					{ name: '$100M - $500M', value: '$100M - $500M' },
+					{ name: '$1B+', value: '$1B+' },
+					{ name: '$1M - $5M', value: '$1M - $5M' },
 					{ name: '$20M - $50M', value: '$20M - $50M' },
-					{ name: '$5M - $20M', value: '$5M - $20M' },
-					{ name: '$50M - $100M', value: '$50M - $100M' },
 					{ name: '$500M - $1B', value: '$500M - $1B' },
+					{ name: '$50M - $100M', value: '$50M - $100M' },
+					{ name: '$5M - $20M', value: '$5M - $20M' },
 				],
 			},
 			{
@@ -178,6 +178,7 @@ const companyFields: INodeProperties[] = [
 				displayName: 'Next Token',
 				name: 'nextToken',
 				type: 'string',
+				typeOptions: { password: true },
 				default: '',
 				description:
 					'Pagination token from a previous search response',
@@ -326,8 +327,8 @@ const companyFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 500,
-		description: 'Max number of results to return (max 500)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 500 },
 		displayOptions: {
 			show: {

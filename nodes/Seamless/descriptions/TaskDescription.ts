@@ -243,15 +243,51 @@ const taskFields: INodeProperties[] = [
 			show: { resource: ['task'], operation: ['executeAction'] },
 		},
 		options: [
-			{ name: 'Cancel', value: 'cancel' },
-			{ name: 'Complete', value: 'complete' },
-			{ name: 'Delete', value: 'delete' },
-			{ name: 'Pause', value: 'pause' },
-			{ name: 'Reschedule', value: 'reschedule' },
-			{ name: 'Schedule', value: 'schedule' },
-			{ name: 'Skip', value: 'skip' },
-			{ name: 'Start', value: 'start' },
-			{ name: 'Unpause', value: 'unpause' },
+			{
+				name: 'Cancel',
+				value: 'cancel',
+				action: 'Cancel task',
+			},
+			{
+				name: 'Complete',
+				value: 'complete',
+				action: 'Complete task',
+			},
+			{
+				name: 'Delete',
+				value: 'delete',
+				action: 'Delete task',
+			},
+			{
+				name: 'Pause',
+				value: 'pause',
+				action: 'Pause task',
+			},
+			{
+				name: 'Reschedule',
+				value: 'reschedule',
+				action: 'Reschedule task',
+			},
+			{
+				name: 'Schedule',
+				value: 'schedule',
+				action: 'Schedule task',
+			},
+			{
+				name: 'Skip',
+				value: 'skip',
+				action: 'Skip task',
+			},
+			{
+				name: 'Start',
+				value: 'start',
+				action: 'Start task',
+			},
+			{
+				name: 'Unpause',
+				value: 'unpause',
+				action: 'Unpause task',
+			},
 		],
 	},
 	// ------ Get Many ------
@@ -270,8 +306,8 @@ const taskFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 25,
-		description: 'Max number of results to return (max 50)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
 			show: {

@@ -86,6 +86,10 @@ function extractCampaignTarget(
 	return { campaignId: Number(raw) };
 }
 
+// `list_campaigns` rejects any limit above 25 server-side, below the value
+// n8n's community-node lint requires as the `limit` parameter default.
+const CAMPAIGN_LIST_MAX_LIMIT = 25;
+
 const CAMPAIGN_SIMPLIFIED_KEYS = [
 	'id',
 	'name',
@@ -645,7 +649,10 @@ async function executeCampaign(
 		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
-		args.limit = this.getNodeParameter('limit', i, 10) as number;
+		args.limit = Math.min(
+			this.getNodeParameter('limit', i, CAMPAIGN_LIST_MAX_LIMIT) as number,
+			CAMPAIGN_LIST_MAX_LIMIT
+		);
 		const result = await seamlessMcpCall.call(this, 'list_campaigns', args);
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}

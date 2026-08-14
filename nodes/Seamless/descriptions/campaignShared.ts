@@ -10,37 +10,45 @@ export const CAMPAIGN_STEP_TYPE_OPTIONS = [
 	{ name: 'Manual Email', value: 'manual-email' },
 ];
 
-export const campaignResourceLocatorModes: NonNullable<
-	INodeProperties['modes']
-> = [
-	{
-		displayName: 'From List',
-		name: 'list',
-		type: 'list',
-		typeOptions: { searchListMethod: 'searchCampaigns', searchable: true },
-	},
-	{
-		displayName: 'By ID',
-		name: 'id',
-		type: 'string',
-		placeholder: 'e.g. 12345',
-		validation: [
-			{
-				type: 'regex',
-				properties: {
-					regex: '^[0-9]+$',
-					errorMessage: 'Must be a numeric ID',
-				},
+// Declared under a `modes` key so these stay recognisable as resource-locator
+// modes, which are exempt from the node-parameter `default` requirement.
+// `INodePropertyMode` has no `default` property of its own.
+const campaignResourceLocator = {
+	modes: [
+		{
+			displayName: 'From List',
+			name: 'list',
+			type: 'list',
+			typeOptions: {
+				searchListMethod: 'searchCampaigns',
+				searchable: true,
 			},
-		],
-	},
-	{
-		displayName: 'By Identifier',
-		name: 'identifier',
-		type: 'string',
-		placeholder: 'e.g. my-campaign-slug',
-	},
-];
+		},
+		{
+			displayName: 'By ID',
+			name: 'id',
+			type: 'string',
+			placeholder: 'e.g. 12345',
+			validation: [
+				{
+					type: 'regex',
+					properties: {
+						regex: '^[0-9]+$',
+						errorMessage: 'Must be a numeric ID',
+					},
+				},
+			],
+		},
+		{
+			displayName: 'By Identifier',
+			name: 'identifier',
+			type: 'string',
+			placeholder: 'e.g. my-campaign-slug',
+		},
+	],
+} satisfies Pick<INodeProperties, 'modes'>;
+
+export const campaignResourceLocatorModes = campaignResourceLocator.modes;
 
 const campaignStepTemplateDataField: INodeProperties = {
 	displayName: 'Template Data',

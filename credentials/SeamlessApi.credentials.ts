@@ -2,6 +2,7 @@ import {
 	type IAuthenticateGeneric,
 	type ICredentialTestRequest,
 	type ICredentialType,
+	type Icon,
 	type INodeProperties,
 } from 'n8n-workflow';
 
@@ -9,6 +10,7 @@ export class SeamlessApi implements ICredentialType {
 	name = 'seamlessApi';
 	displayName = 'Seamless API';
 	documentationUrl = 'https://docs.seamless.ai';
+	icon: Icon = 'file:../nodes/Seamless/seamless.svg';
 	properties: INodeProperties[] = [
 		{
 			displayName: 'MCP Server URL',

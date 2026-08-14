@@ -233,8 +233,8 @@ const templateFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 15,
-		description: 'Max number of results to return (max 50)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },
