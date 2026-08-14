@@ -107,8 +107,25 @@ function parseMarkdownTable(text: string): IDataObject[] | null {
 }
 
 /**
+ * Normalize `result.structuredContent` to the shape callers expect: rows under
+ * `data`, or the lone row itself so single-record operations receive a flat object.
+ * Any sibling keys (e.g. `pagination`, `nextToken`) are kept alongside `data`.
+ */
+function normalizeStructuredContent(structured: IDataObject): IDataObject {
+	const rows = structured.results;
+	if (!Array.isArray(rows)) return structured;
+	if (rows.length === 1) return rows[0] as IDataObject;
+
+	const rest = { ...structured };
+	delete rest.results;
+
+	return { data: rows, ...rest };
+}
+
+/**
  * Parse the JSON-RPC response envelope returned by the MCP server.
- * Extracts result.content[0].text and attempts JSON parsing first, then
+ * Prefers result.structuredContent, which carries the machine-readable payload.
+ * Otherwise extracts result.content[0].text and attempts JSON parsing first, then
  * falls back to markdown-table parsing so callers always receive structured data.
  */
 function parseMcpResponse(response: IDataObject): IDataObject {
@@ -127,6 +144,9 @@ function parseMcpResponse(response: IDataObject): IDataObject {
 		const msg = (content?.text as string) || 'MCP tool returned an error';
 		throw new Error(msg);
 	}
+
+	const structured = result.structuredContent as IDataObject | undefined;
+	if (structured) return normalizeStructuredContent(structured);
 
 	const content = (result.content as IDataObject[] | undefined)?.[0];
 	const text = content?.text as string | undefined;
