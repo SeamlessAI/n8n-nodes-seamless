@@ -6,6 +6,7 @@ import {
 	type INodeListSearchResult,
 	type INodeType,
 	type INodeTypeDescription,
+	type JsonObject,
 	NodeConnectionTypes,
 	NodeApiError,
 	NodeOperationError,
@@ -1570,7 +1571,15 @@ class Seamless implements INodeType {
 					});
 					continue;
 				}
-				if (error instanceof NodeApiError) throw error;
+				if (error instanceof NodeApiError) {
+					throw new NodeApiError(
+						this.getNode(),
+						error as unknown as JsonObject,
+						{
+							itemIndex: i,
+						}
+					);
+				}
 				throw new NodeOperationError(
 					this.getNode(),
 					(error as Error).message,
