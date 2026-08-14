@@ -82,7 +82,6 @@
 		"@types/node": "25.9.3",
 		"eslint": "9.29.0",
 		"eslint-plugin-n8n-nodes-base": "2.0.0",
-		"globals": "17.9.0",
 		"lint-staged": "17.3.0",
 		"n8n-workflow": "2.16.0",
 		"prettier": "3.9.6",
