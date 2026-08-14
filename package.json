@@ -42,8 +42,10 @@
 	"scripts": {
 		"build": "n8n-node build",
 		"dev": "n8n-node dev",
-		"lint": "eslint && n8n-node lint",
-		"lint:fix": "eslint --fix && n8n-node lint --fix",
+		"lint": "eslint && n8n-node lint && npm run scan",
+		"lint:fix": "eslint --fix && n8n-node lint --fix && npm run scan:fix",
+		"scan": "node scripts/scan-community-package.mjs",
+		"scan:fix": "node scripts/scan-community-package.mjs --fix",
 		"refit": "refit",
 		"update": "refit up -i",
 		"wizard": "refit w",
@@ -77,6 +79,7 @@
 	},
 	"devDependencies": {
 		"@n8n/node-cli": "0.35.1",
+		"@n8n/scan-community-package": "^0.32.0",
 		"@types/node": "25.9.3",
 		"eslint": "9.29.0",
 		"eslint-plugin-n8n-nodes-base": "1.16.7",
