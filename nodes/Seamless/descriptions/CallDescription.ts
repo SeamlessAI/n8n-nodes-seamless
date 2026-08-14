@@ -79,7 +79,7 @@ const callFields: INodeProperties[] = [
 				default: '',
 			},
 			{
-				displayName: 'Duration (ms)',
+				displayName: 'Duration in Milliseconds',
 				name: 'durationMs',
 				type: 'number',
 				default: 0,

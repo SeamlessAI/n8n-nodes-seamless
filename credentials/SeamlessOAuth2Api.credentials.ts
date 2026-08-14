@@ -1,9 +1,10 @@
-import type { ICredentialType, INodeProperties } from 'n8n-workflow';
+import type { Icon, ICredentialType, INodeProperties } from 'n8n-workflow';
 
 export class SeamlessOAuth2Api implements ICredentialType {
 	name = 'seamlessOAuth2Api';
 	displayName = 'Seamless OAuth2 API';
 	documentationUrl = 'https://docs.seamless.ai';
+	icon: Icon = 'file:seamless.svg';
 	extends = ['oAuth2Api'];
 
 	properties: INodeProperties[] = [

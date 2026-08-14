@@ -35,8 +35,8 @@ const activityFields: INodeProperties[] = [
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		default: 25,
-		description: 'Max number of results to return (max 50)',
+		default: 50,
+		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
 			show: {

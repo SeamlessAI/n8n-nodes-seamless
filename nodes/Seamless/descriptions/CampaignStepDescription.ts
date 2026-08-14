@@ -156,9 +156,17 @@ const campaignStepFields: INodeProperties[] = [
 			show: { resource: ['campaignStep'], operation: ['executeAction'] },
 		},
 		options: [
-			{ name: 'Pause', value: 'PAUSE' },
-			{ name: 'Resume', value: 'RESUME' },
-			{ name: 'Skip', value: 'SKIP' },
+			{
+				name: 'Pause',
+				value: 'PAUSE',
+				action: 'Pause a campaign step',
+			},
+			{
+				name: 'Resume',
+				value: 'RESUME',
+				action: 'Resume a campaign step',
+			},
+			{ name: 'Skip', value: 'SKIP', action: 'Skip a campaign step' },
 		],
 	},
 ];
