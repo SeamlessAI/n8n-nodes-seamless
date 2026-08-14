@@ -24,7 +24,7 @@ A release is complete only when all four are true: the tag is on `origin`, a Git
 
 ## Do not run `npm run release` locally
 
-It fails on the first step. `@n8n/node-cli@0.43.4` passes `'--git.requireBranch main'` to release-it as one argument with a literal space, and release-it v21 (which switched to node's `parseArgs`) rejects it:
+It fails on the first step. `@n8n/node-cli` passes `'--git.requireBranch main'` to release-it as one argument with a literal space, and release-it v21 (which switched to node's `parseArgs`) rejects it:
 
 ```
 ERROR Unknown option '--git.requireBranch main'
@@ -34,7 +34,7 @@ release-it is not a project dependency, so `npm exec` resolves the latest v21 an
 
 So invoke `release-it` directly with correctly quoted flags, as in the command below. This preserves exactly what n8n intends locally. The CI half is unaffected by the bug, because in CI the command never calls release-it — leave `.github/workflows/publish.yml` running `npm run release`.
 
-Re-check this on every `@n8n/node-cli` upgrade. If `npm exec -- release-it --release-version '--git.requireBranch main'` stops erroring, switch back to plain `npm run release`.
+Still present as of `@n8n/node-cli@0.44.0`, whose `release.js` is byte-identical to 0.43.4's. Re-check on every upgrade by diffing the release-it argv in `node_modules/@n8n/node-cli/dist/commands/release.js`; if the flag becomes two separate array entries, switch back to plain `npm run release`.
 
 ## Resolve target version
 
