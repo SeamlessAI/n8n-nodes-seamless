@@ -645,7 +645,7 @@ async function executeCampaign(
 		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
-		args.limit = this.getNodeParameter('limit', i, 10) as number;
+		args.limit = this.getNodeParameter('limit', i, 25) as number;
 		const result = await seamlessMcpCall.call(this, 'list_campaigns', args);
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
