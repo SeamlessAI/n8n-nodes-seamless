@@ -18,7 +18,9 @@ Release workflow for `@seamless-oss/n8n-nodes-seamless`.
 
 Pushing the `v*.*.*` tag is what triggers `.github/workflows/publish.yml`, which is where the npm publish happens. npm provenance requires that publish to run in Actions, so never publish from a local machine — a locally published version cannot be a verified n8n community node.
 
-Creating the GitHub Release does **not** trigger the workflow; it emits a `release` event and the workflow only subscribes to `push` tags. The tag push is the single trigger.
+Creating a GitHub Release for a new `v*.*.*` tag also triggers it, because GitHub pushes the tag. The workflow event is still `push`, not `release`. The run is named `chore: release <tag>` via `run-name`.
+
+Before publishing, the workflow sets `package.json` / `package-lock.json` to the tag version (e.g. `v0.6.10` → `0.6.10`). If `main` is behind that version, it commits `chore: release v<version>` and pushes. If the tag already points at a bumped commit (local release-it), it skips the commit and publishes.
 
 A release is complete only when all four are true: the tag is on `origin`, a GitHub Release exists for it, the publish workflow succeeded, and the new version is on npm.
 
@@ -84,6 +86,7 @@ npm exec -- release-it <patch|minor|major|version> \
   --git.requireUpstream \
   --git.requireCommits \
   --git.commit \
+  --git.commitMessage='chore: release v${version}' \
   --git.tag \
   --git.push \
   --git.tagName='v${version}' \
@@ -96,7 +99,7 @@ npm exec -- release-it <patch|minor|major|version> \
 
 Notes:
 
-- Keep `--git.tagName='v${version}'` in **single** quotes so the shell does not expand `${version}`. Without this flag release-it infers the prefix from the latest tag, which silently produces an unprefixed tag (and no workflow trigger) if the tag history is ever rewritten.
+- Keep `--git.tagName='v${version}'` and `--git.commitMessage='chore: release v${version}'` in **single** quotes so the shell does not expand `${version}`. Without `--git.tagName`, release-it infers the prefix from the latest tag, which silently produces an unprefixed tag (and no workflow trigger) if the tag history is ever rewritten. Without `--git.commitMessage`, it defaults to `Release ${version}` instead of the conventional `chore: release vX.Y.Z` used in this repo. `.release-it.json` sets the same commit message so it still applies if a flag is omitted.
 - `--npm.publish=false` is what keeps provenance intact by leaving the publish to Actions.
 - `--hooks.before:init` runs lint and build, so a broken build aborts the release before anything is committed.
 - `--hooks.after:bump` writes `CHANGELOG.md`, which is included in the release commit.
