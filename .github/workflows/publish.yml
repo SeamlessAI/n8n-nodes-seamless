@@ -1,5 +1,5 @@
 name: Publish
-run-name: chore: release ${{ github.ref_name }}
+run-name: "chore: release ${{ github.ref_name }}"
 
 on:
   push:
