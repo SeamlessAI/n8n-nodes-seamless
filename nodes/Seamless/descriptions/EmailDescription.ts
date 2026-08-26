@@ -288,11 +288,16 @@ const emailFields: INodeProperties[] = [
 				default: '',
 			},
 			{
+				// The send_email MCP schema has no scheduleAt; only drafts
+				// can be scheduled, so hide it on the Send operation.
 				displayName: 'Schedule At',
 				name: 'scheduleAt',
 				type: 'dateTime',
 				default: '',
 				description: 'When to send the email (ISO 8601)',
+				displayOptions: {
+					show: { '/operation': ['createDraft'] },
+				},
 			},
 			{
 				displayName: 'Subject',

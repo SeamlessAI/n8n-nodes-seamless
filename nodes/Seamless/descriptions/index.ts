@@ -18,6 +18,7 @@ export {
 	emailFooterFields,
 } from './EmailFooterDescription';
 export { listOperations, listFields } from './ListDescription';
+export { locationOperations, locationFields } from './LocationDescription';
 export {
 	savedSearchOperations,
 	savedSearchFields,

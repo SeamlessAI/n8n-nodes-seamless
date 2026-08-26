@@ -156,6 +156,17 @@ const companyFields: INodeProperties[] = [
 				description: 'Comma-separated values to provide multiple',
 			},
 			{
+				displayName: 'Company Types',
+				name: 'companyTypes',
+				type: 'multiOptions',
+				default: [],
+				description: 'Filter by company type (Public or Private)',
+				options: [
+					{ name: 'Private', value: 'Private' },
+					{ name: 'Public', value: 'Public' },
+				],
+			},
+			{
 				displayName: 'Company Zip Code',
 				name: 'companyZipCode',
 				type: 'string',
@@ -175,6 +186,142 @@ const companyFields: INodeProperties[] = [
 				],
 			},
 			{
+				displayName: 'Funding Totals',
+				name: 'fundingTotals',
+				type: 'multiOptions',
+				default: [],
+				description:
+					'Filter by total funding amount range (e.g. ["$1M-$5M", "$5M-$20M"])',
+				options: [
+					{ name: '$0-$100K', value: '$0-$100K' },
+					{ name: '$100K-$1M', value: '$100K-$1M' },
+					{ name: '$100M-$500M', value: '$100M-$500M' },
+					{ name: '$1B+', value: '$1B+' },
+					{ name: '$1M-$5M', value: '$1M-$5M' },
+					{ name: '$20M-$50M', value: '$20M-$50M' },
+					{ name: '$500M-$1B', value: '$500M-$1B' },
+					{ name: '$50M-$100M', value: '$50M-$100M' },
+					{ name: '$5M-$20M', value: '$5M-$20M' },
+				],
+			},
+			{
+				displayName: 'Industry NAICS Codes',
+				name: 'industryNaicsCodes',
+				type: 'string',
+				default: '',
+				description:
+					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+			},
+			{
+				displayName: 'Industry SIC Codes',
+				name: 'industrySicCodes',
+				type: 'string',
+				default: '',
+				description:
+					'Filter by SIC code, independently of Industry (e.g. 7372). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+			},
+			{
+				displayName: 'Keywords Is Or',
+				name: 'keywordsIsOr',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether multiple Company Keyword values match ANY of them (true) or require ALL of them (false)',
+			},
+			{
+				displayName: 'Latest Funding Classifications',
+				name: 'latestFundingClassifications',
+				type: 'multiOptions',
+				default: [],
+				description:
+					'Filter by latest funding round type (e.g. Seed, Series A)',
+				options: [
+					{ name: 'Angel', value: 'Angel' },
+					{ name: 'Other', value: 'Other' },
+					{ name: 'Pre-Seed', value: 'Pre-Seed' },
+					{ name: 'Seed', value: 'Seed' },
+					{ name: 'Series A', value: 'Series A' },
+					{ name: 'Series B', value: 'Series B' },
+					{ name: 'Series C', value: 'Series C' },
+					{ name: 'Series D', value: 'Series D' },
+					{ name: 'Series E', value: 'Series E' },
+					{ name: 'Series F', value: 'Series F' },
+					{ name: 'Series G', value: 'Series G' },
+					{ name: 'Series H', value: 'Series H' },
+					{ name: 'Series I', value: 'Series I' },
+					{ name: 'Series J', value: 'Series J' },
+				],
+			},
+			{
+				displayName: 'Latest Funding Dates',
+				name: 'latestFundingDates',
+				type: 'multiOptions',
+				default: [],
+				description: 'Filter by recency of latest funding round',
+				options: [
+					{ name: 'Last 180 Days', value: '180' },
+					{ name: 'Last 3 Years', value: '1095' },
+					{ name: 'Last 90 Days', value: '90' },
+					{ name: 'Last Year', value: '365' },
+				],
+			},
+			{
+				displayName: 'Location Radius',
+				name: 'locationRadius',
+				type: 'options',
+				default: '25',
+				description:
+					'Widen every company location filter, Company Zip Code included, to everything within this radius in miles. Only geocodable values (cities, zip codes) get a radius.',
+				options: [
+					{ name: '100 Miles', value: '100' },
+					{ name: '25 Miles', value: '25' },
+					{ name: '250 Miles', value: '250' },
+					{ name: '50 Miles', value: '50' },
+				],
+			},
+			{
+				displayName: 'Locations',
+				name: 'locations',
+				type: 'string',
+				default: '',
+				description:
+					'Filter by free-form location tags — city, state/region, or country, and the only way to filter by city (e.g. "Austin, Texas"). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+			},
+			{
+				displayName: 'News Type Dates',
+				name: 'newsTypeDates',
+				type: 'options',
+				default: '90',
+				description: 'Recency window for News Types, in days',
+				options: [
+					{ name: 'Last 180 Days', value: '180' },
+					{ name: 'Last 60 Days', value: '60' },
+					{ name: 'Last 90 Days', value: '90' },
+					{ name: 'Last Year', value: '365' },
+				],
+			},
+			{
+				displayName: 'News Types',
+				name: 'newsTypes',
+				type: 'multiOptions',
+				default: [],
+				description:
+					'Filter by company news/event type. Pair with News Type Dates to bound recency.',
+				options: [
+					{ name: 'Acquisition', value: 'Acquisition' },
+					{
+						name: 'Corporate Challenges',
+						value: 'Corporate Challenges',
+					},
+					{ name: 'Cost Cutting', value: 'Cost Cutting' },
+					{ name: 'Expansion', value: 'Expansion' },
+					{ name: 'Investment', value: 'Investment' },
+					{ name: 'Leadership', value: 'Leadership' },
+					{ name: 'Partnership', value: 'Partnership' },
+					{ name: 'Recognition', value: 'Recognition' },
+				],
+			},
+			{
 				displayName: 'Next Token',
 				name: 'nextToken',
 				type: 'string',
@@ -182,6 +329,23 @@ const companyFields: INodeProperties[] = [
 				default: '',
 				description:
 					'Pagination token from a previous search response',
+			},
+			{
+				displayName: 'Page',
+				name: 'page',
+				type: 'number',
+				default: 1,
+				typeOptions: { minValue: 1 },
+				description:
+					'1-based page number, for jumping to a specific offset. Prefer Next Token for sequential paging.',
+			},
+			{
+				displayName: 'Saved Search ID',
+				name: 'savedSearchId',
+				type: 'string',
+				default: '',
+				description:
+					'Run the filters held by a saved search. Cannot be combined with other filters.',
 			},
 			{
 				displayName: 'Technologies',
@@ -219,6 +383,17 @@ const companyFields: INodeProperties[] = [
 		default: '[]',
 		description:
 			'JSON array of companies to research. Each object needs a domain or companyName.',
+		displayOptions: {
+			show: { resource: ['company'], operation: ['research'] },
+		},
+	},
+	{
+		displayName: 'Skip Deduplication Check',
+		name: 'skipDeduplicationCheck',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to bypass the deduplication check so an already-researched record is enriched again. Consumes credits each time.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['research'] },
 		},

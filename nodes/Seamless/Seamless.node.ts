@@ -42,6 +42,8 @@ import {
 	emailFooterFields,
 	listOperations,
 	listFields,
+	locationOperations,
+	locationFields,
 	savedSearchOperations,
 	savedSearchFields,
 	taskOperations,
@@ -290,7 +292,48 @@ const CONTACT_SEARCH_CSV_KEYS = [
 	'contactZipCode',
 	'contactKeyword',
 	'technologies',
+	'locations',
+	'industrySicCodes',
+	'industryNaicsCodes',
+	'emailAddress',
+	'phoneNumber',
 ];
+
+/**
+ * Fold flattened search `additionalFields` into the nested/array shapes the MCP
+ * schemas expect: jobChanges + pastCompany objects and the newsTypeDates array.
+ * Mutates `cleaned` (removes consumed keys) and sets results on `body`.
+ */
+function foldSearchObjectFilters(body: IDataObject, cleaned: IDataObject): void {
+	const jobChanges = cleanObj({
+		changeType: cleaned.jobChangeType,
+		dayRange: cleaned.jobChangeDayRange,
+	});
+	delete cleaned.jobChangeType;
+	delete cleaned.jobChangeDayRange;
+	if (Object.keys(jobChanges).length) body.jobChanges = jobChanges;
+
+	const pastCompanyNames = csvToStringArray(cleaned.pastCompanyNames);
+	if (pastCompanyNames.length) {
+		const pastCompany: IDataObject = { names: pastCompanyNames };
+		if (cleaned.pastCompanyOnlyMostRecentDeparture === true) {
+			pastCompany.onlyMostRecentDeparture = true;
+		}
+		if (cleaned.pastCompanyExactMatch === true) {
+			pastCompany.exactMatch = true;
+		}
+		body.pastCompany = pastCompany;
+	}
+	delete cleaned.pastCompanyNames;
+	delete cleaned.pastCompanyOnlyMostRecentDeparture;
+	delete cleaned.pastCompanyExactMatch;
+
+	// The MCP schema takes newsTypeDates as an array holding a single value.
+	if (cleaned.newsTypeDates !== undefined) {
+		body.newsTypeDates = [cleaned.newsTypeDates];
+		delete cleaned.newsTypeDates;
+	}
+}
 
 async function executeContact(
 	this: IExecuteFunctions,
@@ -352,6 +395,7 @@ async function executeContact(
 				delete cleaned[key];
 			}
 		}
+		foldSearchObjectFilters(body, cleaned);
 		Object.assign(body, cleaned);
 
 		return seamlessMcpSearchAll.call(
@@ -380,6 +424,13 @@ async function executeContact(
 			false,
 		) as boolean;
 		if (isJobChange) body.isJobChange = true;
+
+		const skipDeduplicationCheck = this.getNodeParameter(
+			'skipDeduplicationCheck',
+			i,
+			false,
+		) as boolean;
+		if (skipDeduplicationCheck) body.skipDeduplicationCheck = true;
 
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
@@ -450,6 +501,9 @@ const COMPANY_SEARCH_CSV_KEYS = [
 	'companyZipCode',
 	'companyKeyword',
 	'technologies',
+	'locations',
+	'industrySicCodes',
+	'industryNaicsCodes',
 ];
 
 async function executeCompany(
@@ -492,6 +546,7 @@ async function executeCompany(
 				delete cleaned[key];
 			}
 		}
+		foldSearchObjectFilters(body, cleaned);
 		Object.assign(body, cleaned);
 
 		return seamlessMcpSearchAll.call(
@@ -513,6 +568,13 @@ async function executeCompany(
 		const companies = this.getNodeParameter('companies', i, '[]') as string;
 		const parsed = JSON.parse(companies);
 		if (Array.isArray(parsed) && parsed.length) body.companies = parsed;
+
+		const skipDeduplicationCheck = this.getNodeParameter(
+			'skipDeduplicationCheck',
+			i,
+			false,
+		) as boolean;
+		if (skipDeduplicationCheck) body.skipDeduplicationCheck = true;
 
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
@@ -601,6 +663,32 @@ async function executeList(
 		const id = extractRlId(this, 'listId', i);
 		await seamlessMcpCall.call(this, 'delete_list', { id });
 		return { deleted: true };
+	}
+	return {};
+}
+
+// ─── Location ───────────────────────────────────────────────────────────────
+
+async function executeLocation(
+	this: IExecuteFunctions,
+	operation: string,
+	i: number
+): Promise<IDataObject | IDataObject[]> {
+	if (operation === 'lookup') {
+		const body: IDataObject = {
+			q: this.getNodeParameter('q', i) as string,
+		};
+		const limit = this.getNodeParameter('limit', i, 50) as number;
+		if (limit) body.limit = limit;
+		const types = this.getNodeParameter('types', i, []) as string[];
+		if (types.length) body.types = types;
+
+		const response = await seamlessMcpCall.call(
+			this,
+			'lookup_locations',
+			body,
+		);
+		return (response.data || response) as IDataObject[];
 	}
 	return {};
 }
@@ -1026,6 +1114,9 @@ async function executeEmail(
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['templateId']);
+		// send_email has no scheduleAt in its MCP schema; drop it so workflows
+		// saved before the field was hidden don't silently send unscheduled.
+		delete cleaned.scheduleAt;
 		Object.assign(body, cleaned);
 		return seamlessMcpCall.call(this, 'send_email', body);
 	}
@@ -1081,8 +1172,10 @@ async function executeTask(
 		const body: IDataObject = {
 			name: this.getNodeParameter('name', i) as string,
 			taskType: this.getNodeParameter('taskType', i) as string,
-			contactId: this.getNodeParameter('contactId', i) as number,
+			contactId: this.getNodeParameter('contactId', i, 0) as number,
 		};
+		// contactId is optional in the MCP schema; 0 means "standalone task".
+		dropZeroIds(body, ['contactId']);
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
@@ -1104,7 +1197,9 @@ async function executeTask(
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const args: IDataObject = {};
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
-		Object.assign(args, cleanObj(filters));
+		const cleanedFilters = cleanObj(filters);
+		dropZeroIds(cleanedFilters, ['campaignId']);
+		Object.assign(args, cleanedFilters);
 
 		if (returnAll) {
 			const allItems = await seamlessMcpCallAllOffsets.call(
@@ -1320,6 +1415,7 @@ class Seamless implements INodeType {
 					{ name: 'Email Account', value: 'emailAccount' },
 					{ name: 'Email Footer', value: 'emailFooter' },
 					{ name: 'List', value: 'list' },
+					{ name: 'Location', value: 'location' },
 					{ name: 'Saved Search', value: 'savedSearch' },
 					{ name: 'Task', value: 'task' },
 					{ name: 'Template', value: 'template' },
@@ -1329,6 +1425,7 @@ class Seamless implements INodeType {
 			...contactOperations,
 			...companyOperations,
 			...listOperations,
+			...locationOperations,
 			...creditsOperations,
 			...campaignOperations,
 			...campaignStepOperations,
@@ -1344,6 +1441,7 @@ class Seamless implements INodeType {
 			...contactFields,
 			...companyFields,
 			...listFields,
+			...locationFields,
 			...creditsFields,
 			...campaignFields,
 			...campaignStepFields,
@@ -1502,6 +1600,12 @@ class Seamless implements INodeType {
 					);
 				} else if (resource === 'list') {
 					responseData = await executeList.call(this, operation, i);
+				} else if (resource === 'location') {
+					responseData = await executeLocation.call(
+						this,
+						operation,
+						i
+					);
 				} else if (resource === 'credits') {
 					responseData = await seamlessMcpCall.call(
 						this,

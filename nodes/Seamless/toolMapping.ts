@@ -24,6 +24,9 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 		update: 'update_list',
 		delete: 'delete_list',
 	},
+	location: {
+		lookup: 'lookup_locations',
+	},
 	credits: {
 		getCredits: 'get_credits',
 	},
