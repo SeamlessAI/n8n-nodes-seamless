@@ -730,12 +730,27 @@ async function executeCampaign(
 	}
 	if (operation === 'getMany') {
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
 		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
-		args.limit = this.getNodeParameter('limit', i, 25) as number;
-		const result = await seamlessMcpCall.call(this, 'list_campaigns', args);
-		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
+		const status = this.getNodeParameter('status', i, []) as string[];
+		if (status.length) args.status = status;
+
+		if (returnAll) {
+			const items = await seamlessMcpCallAllOffsets.call(
+				this,
+				'list_campaigns',
+				args,
+				50,
+			);
+			return simplifyResults(items, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
+		}
+		args.limit = this.getNodeParameter('limit', i, 50) as number;
+		args.offset = this.getNodeParameter('offset', i, 0) as number;
+		const response = await seamlessMcpCall.call(this, 'list_campaigns', args);
+		const items = (response.data || response) as IDataObject | IDataObject[];
+		return simplifyResults(items, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
 	if (operation === 'update') {
 		const target = extractCampaignTarget(this, 'campaignId', i);
@@ -1482,10 +1497,12 @@ class Seamless implements INodeType {
 				this: ILoadOptionsFunctions,
 				filter?: string,
 			): Promise<INodeListSearchResult> {
+				const args: IDataObject = { limit: 50 };
+				if (filter) args.searchText = filter;
 				const response = await seamlessMcpCall.call(
 					this,
 					'list_campaigns',
-					{ limit: 25 },
+					args,
 				);
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])

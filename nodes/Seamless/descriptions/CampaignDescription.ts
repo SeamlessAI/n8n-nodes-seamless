@@ -245,16 +245,62 @@ const campaignFields: INodeProperties[] = [
 		},
 	},
 	{
+		displayName: 'Status',
+		name: 'status',
+		type: 'multiOptions',
+		default: [],
+		description:
+			'Filter campaigns by lifecycle status. Archived campaigns are excluded unless Archived is selected.',
+		options: [
+			{ name: 'Active', value: 'active' },
+			{ name: 'Archived', value: 'archived' },
+			{ name: 'Completed', value: 'completed' },
+			{ name: 'Draft', value: 'draft' },
+			{ name: 'Paused', value: 'paused' },
+		],
+		displayOptions: {
+			show: { resource: ['campaign'], operation: ['getMany'] },
+		},
+	},
+	{
+		displayName: 'Return All',
+		name: 'returnAll',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to return all results or only up to a given limit',
+		displayOptions: {
+			show: { resource: ['campaign'], operation: ['getMany'] },
+		},
+	},
+	{
 		displayName: 'Limit',
 		name: 'limit',
 		type: 'number',
-		// API max is 25; n8n's limit-default rule expects 50
-		// eslint-disable-next-line n8n-nodes-base/node-param-default-wrong-for-limit
-		default: 25,
+		default: 50,
 		description: 'Max number of results to return',
-		typeOptions: { minValue: 1, maxValue: 25 },
+		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
-			show: { resource: ['campaign'], operation: ['getMany'] },
+			show: {
+				resource: ['campaign'],
+				operation: ['getMany'],
+				returnAll: [false],
+			},
+		},
+	},
+	{
+		displayName: 'Offset',
+		name: 'offset',
+		type: 'number',
+		default: 0,
+		description: 'Pagination offset (default 0)',
+		typeOptions: { minValue: 0 },
+		displayOptions: {
+			show: {
+				resource: ['campaign'],
+				operation: ['getMany'],
+				returnAll: [false],
+			},
 		},
 	},
 	{
