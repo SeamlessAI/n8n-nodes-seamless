@@ -17,7 +17,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Add Contacts',
 				value: 'addContacts',
 				action: 'Add contacts to campaign',
-				description: 'Add contacts to a campaign by ID (max 500)',
+				description:
+					'Add contacts to a campaign by ID (max 500). Returns the updated campaign and contactsAdded — the number actually enrolled, which can be lower than requested when contacts are not in the org or fall below the campaign AI score threshold.',
 			},
 			{
 				name: 'Clone',
