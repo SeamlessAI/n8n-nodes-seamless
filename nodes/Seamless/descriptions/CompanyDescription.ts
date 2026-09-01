@@ -33,6 +33,13 @@ const companyOperations: INodeProperties[] = [
 				action: 'Search companies',
 				description: 'Find companies matching filter criteria',
 			},
+			{
+				name: 'Update',
+				value: 'update',
+				action: 'Update companies',
+				description:
+					'Update saved companies. Currently manages which lists they belong to.',
+			},
 		],
 		default: 'search',
 	},
@@ -469,6 +476,48 @@ const companyFields: INodeProperties[] = [
 		description: 'Comma-separated request IDs from a prior research call',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['pollResearch'] },
+		},
+	},
+	// ------ Update ------
+	{
+		displayName: 'Company IDs',
+		name: 'companyIds',
+		type: 'string',
+		default: '',
+		required: true,
+		placeholder: 'e.g. 123,456',
+		description:
+			'Comma-separated IDs of the saved companies to update (max 500). IDs come from Get Many.',
+		displayOptions: {
+			show: { resource: ['company'], operation: ['update'] },
+		},
+	},
+	{
+		displayName: 'List IDs',
+		name: 'listIds',
+		type: 'string',
+		default: '',
+		placeholder: 'e.g. 123,456',
+		description:
+			'Comma-separated IDs of the lists to apply (max 50). May be empty only with List Action "Replace", which clears every list off the companies.',
+		displayOptions: {
+			show: { resource: ['company'], operation: ['update'] },
+		},
+	},
+	{
+		displayName: 'List Action',
+		name: 'listAction',
+		type: 'options',
+		default: 'add',
+		description:
+			'How List IDs is applied. "Add" leaves the companies in any lists they are already in.',
+		options: [
+			{ name: 'Add', value: 'add' },
+			{ name: 'Remove', value: 'remove' },
+			{ name: 'Replace', value: 'replace' },
+		],
+		displayOptions: {
+			show: { resource: ['company'], operation: ['update'] },
 		},
 	},
 	// ------ Shared ------

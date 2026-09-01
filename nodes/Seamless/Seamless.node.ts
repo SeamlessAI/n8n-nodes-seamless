@@ -425,6 +425,11 @@ async function executeContact(
 		) as boolean;
 		if (isJobChange) body.isJobChange = true;
 
+		const listIds = csvToNumberArray(
+			this.getNodeParameter('listIds', i, ''),
+		);
+		if (listIds.length) body.listIds = listIds;
+
 		const skipDeduplicationCheck = this.getNodeParameter(
 			'skipDeduplicationCheck',
 			i,
@@ -487,6 +492,25 @@ async function executeContact(
 			'poll_contact_research',
 			{ requestIds: ids },
 		);
+	}
+
+	if (operation === 'update') {
+		const contactIds = csvToNumberArray(
+			this.getNodeParameter('contactIds', i),
+		);
+		const listIds = csvToNumberArray(
+			this.getNodeParameter('listIds', i, ''),
+		);
+		const listAction = this.getNodeParameter(
+			'listAction',
+			i,
+			'add',
+		) as string;
+		return seamlessMcpCall.call(this, 'update_my_contact', {
+			contactIds,
+			listIds,
+			listAction,
+		});
 	}
 
 	return {};
@@ -631,6 +655,25 @@ async function executeCompany(
 			'poll_company_research',
 			{ requestIds: ids },
 		);
+	}
+
+	if (operation === 'update') {
+		const companyIds = csvToNumberArray(
+			this.getNodeParameter('companyIds', i),
+		);
+		const listIds = csvToNumberArray(
+			this.getNodeParameter('listIds', i, ''),
+		);
+		const listAction = this.getNodeParameter(
+			'listAction',
+			i,
+			'add',
+		) as string;
+		return seamlessMcpCall.call(this, 'update_my_company', {
+			companyIds,
+			listIds,
+			listAction,
+		});
 	}
 
 	return {};

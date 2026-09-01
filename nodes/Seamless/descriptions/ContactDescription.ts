@@ -33,6 +33,13 @@ const contactOperations: INodeProperties[] = [
 				action: 'Search contacts',
 				description: 'Find contacts matching filter criteria',
 			},
+			{
+				name: 'Update',
+				value: 'update',
+				action: 'Update contacts',
+				description:
+					'Update saved contacts. Currently manages which lists they belong to.',
+			},
 		],
 		default: 'search',
 	},
@@ -660,6 +667,18 @@ const contactFields: INodeProperties[] = [
 		},
 	},
 	{
+		displayName: 'List IDs',
+		name: 'listIds',
+		type: 'string',
+		default: '',
+		placeholder: 'e.g. 123,456',
+		description:
+			'Comma-separated IDs of contact lists to add each newly saved contact to (max 50). Contacts that were already researched are not re-saved; add those to a list with the Update operation instead.',
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['research'] },
+		},
+	},
+	{
 		displayName: 'Skip Deduplication Check',
 		name: 'skipDeduplicationCheck',
 		type: 'boolean',
@@ -741,6 +760,48 @@ const contactFields: INodeProperties[] = [
 		description: 'Comma-separated request IDs from a prior research call',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['pollResearch'] },
+		},
+	},
+	// ------ Update ------
+	{
+		displayName: 'Contact IDs',
+		name: 'contactIds',
+		type: 'string',
+		default: '',
+		required: true,
+		placeholder: 'e.g. 123,456',
+		description:
+			'Comma-separated IDs of the saved contacts to update (max 500). IDs come from Get Many (or the contactId of an already saved search result).',
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['update'] },
+		},
+	},
+	{
+		displayName: 'List IDs',
+		name: 'listIds',
+		type: 'string',
+		default: '',
+		placeholder: 'e.g. 123,456',
+		description:
+			'Comma-separated IDs of the lists to apply (max 50). May be empty only with List Action "Replace", which clears every list off the contacts.',
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['update'] },
+		},
+	},
+	{
+		displayName: 'List Action',
+		name: 'listAction',
+		type: 'options',
+		default: 'add',
+		description:
+			'How List IDs is applied. "Add" leaves the contacts in any lists they are already in.',
+		options: [
+			{ name: 'Add', value: 'add' },
+			{ name: 'Remove', value: 'remove' },
+			{ name: 'Replace', value: 'replace' },
+		],
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['update'] },
 		},
 	},
 	// ------ Shared: Return All / Limit / Simplify ------
