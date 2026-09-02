@@ -1,5 +1,7 @@
 import { type INodeProperties } from 'n8n-workflow';
 
+import { searchLocationsField } from './searchShared';
+
 const companyOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -286,14 +288,7 @@ const companyFields: INodeProperties[] = [
 					{ name: '50 Miles', value: '50' },
 				],
 			},
-			{
-				displayName: 'Locations',
-				name: 'locations',
-				type: 'string',
-				default: '',
-				description:
-					'Filter by free-form location tags — city, state/region, or country, and the only way to filter by city (e.g. "Austin, Texas"). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
-			},
+			searchLocationsField,
 			{
 				displayName: 'News Type Dates',
 				name: 'newsTypeDates',
