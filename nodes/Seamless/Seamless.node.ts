@@ -86,6 +86,9 @@ function extractCampaignTarget(
 	return { campaignId: Number(raw) };
 }
 
+// list_campaigns API max; the n8n limit default (50) must not reach the API unclamped
+const CAMPAIGN_LIST_MAX_LIMIT = 25;
+
 const CAMPAIGN_SIMPLIFIED_KEYS = [
 	'id',
 	'name',
@@ -645,7 +648,10 @@ async function executeCampaign(
 		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
-		args.limit = this.getNodeParameter('limit', i, 25) as number;
+		args.limit = Math.min(
+			this.getNodeParameter('limit', i, CAMPAIGN_LIST_MAX_LIMIT) as number,
+			CAMPAIGN_LIST_MAX_LIMIT,
+		);
 		const result = await seamlessMcpCall.call(this, 'list_campaigns', args);
 		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
