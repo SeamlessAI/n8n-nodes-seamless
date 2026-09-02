@@ -51,6 +51,7 @@ import {
 	templateOperations,
 	templateFields,
 } from './descriptions';
+import { SEARCH_LOCATIONS_MAX } from './descriptions/searchShared';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -292,12 +293,44 @@ const CONTACT_SEARCH_CSV_KEYS = [
 	'contactZipCode',
 	'contactKeyword',
 	'technologies',
-	'locations',
 	'industrySicCodes',
 	'industryNaicsCodes',
 	'emailAddress',
 	'phoneNumber',
 ];
+
+/**
+ * Unwrap the repeatable Locations fixedCollection
+ * (`{ location: [{ value }] }`) into the `string[]` the MCP schema expects.
+ * Location tags contain commas ("Austin, Texas"), so they are never CSV-split.
+ * Removes `locations` from `cleaned`; throws when more than the max are given.
+ */
+function foldSearchLocations(
+	ctx: IExecuteFunctions,
+	body: IDataObject,
+	cleaned: IDataObject,
+	itemIndex: number,
+): void {
+	const raw = cleaned.locations as IDataObject | undefined;
+	delete cleaned.locations;
+	if (!raw || typeof raw !== 'object') return;
+
+	const entries = (raw.location as IDataObject[] | undefined) ?? [];
+	const locations = entries.reduce<string[]>((acc, entry) => {
+		const value = String(entry?.value ?? '').trim();
+		if (value) acc.push(value);
+		return acc;
+	}, []);
+
+	if (locations.length > SEARCH_LOCATIONS_MAX) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`Locations accepts at most ${SEARCH_LOCATIONS_MAX} entries (got ${locations.length})`,
+			{ itemIndex },
+		);
+	}
+	if (locations.length) body.locations = locations;
+}
 
 /**
  * Fold flattened search `additionalFields` into the nested/array shapes the MCP
@@ -389,6 +422,7 @@ async function executeContact(
 			{}
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
+		foldSearchLocations(this, body, cleaned, i);
 		for (const key of CONTACT_SEARCH_CSV_KEYS) {
 			if (cleaned[key] !== undefined) {
 				setStringArray(body, key, cleaned[key]);
@@ -525,7 +559,6 @@ const COMPANY_SEARCH_CSV_KEYS = [
 	'companyZipCode',
 	'companyKeyword',
 	'technologies',
-	'locations',
 	'industrySicCodes',
 	'industryNaicsCodes',
 ];
@@ -564,6 +597,7 @@ async function executeCompany(
 			{}
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
+		foldSearchLocations(this, body, cleaned, i);
 		for (const key of COMPANY_SEARCH_CSV_KEYS) {
 			if (cleaned[key] !== undefined) {
 				setStringArray(body, key, cleaned[key]);
