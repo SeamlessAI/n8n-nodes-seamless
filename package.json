@@ -77,16 +77,16 @@
 	},
 	"devDependencies": {
 		"@eslint/js": "9.29.0",
-		"@n8n/eslint-plugin-community-nodes": "0.29.0",
-		"@n8n/node-cli": "0.44.2",
+		"@n8n/eslint-plugin-community-nodes": "0.30.0",
+		"@n8n/node-cli": "0.46.1",
 		"@types/node": "25.9.3",
 		"eslint": "9.29.0",
 		"eslint-plugin-n8n-nodes-base": "2.0.0",
-		"lint-staged": "17.3.0",
+		"lint-staged": "17.4.1",
 		"n8n-workflow": "2.16.0",
 		"prettier": "3.9.6",
 		"refit": "2.0.0",
 		"typescript": "6.0.3",
-		"typescript-eslint": "8.67.0"
+		"typescript-eslint": "8.68.0"
 	}
 }
