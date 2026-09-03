@@ -42,6 +42,8 @@ import {
 	emailFooterFields,
 	listOperations,
 	listFields,
+	locationOperations,
+	locationFields,
 	savedSearchOperations,
 	savedSearchFields,
 	taskOperations,
@@ -49,6 +51,7 @@ import {
 	templateOperations,
 	templateFields,
 } from './descriptions';
+import { SEARCH_LOCATIONS_MAX } from './descriptions/searchShared';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
 
@@ -85,9 +88,6 @@ function extractCampaignTarget(
 	}
 	return { campaignId: Number(raw) };
 }
-
-// list_campaigns API max; the n8n limit default (50) must not reach the API unclamped
-const CAMPAIGN_LIST_MAX_LIMIT = 25;
 
 const CAMPAIGN_SIMPLIFIED_KEYS = [
 	'id',
@@ -293,7 +293,80 @@ const CONTACT_SEARCH_CSV_KEYS = [
 	'contactZipCode',
 	'contactKeyword',
 	'technologies',
+	'industrySicCodes',
+	'industryNaicsCodes',
+	'emailAddress',
+	'phoneNumber',
 ];
+
+/**
+ * Unwrap the repeatable Locations fixedCollection
+ * (`{ location: [{ value }] }`) into the `string[]` the MCP schema expects.
+ * Location tags contain commas ("Austin, Texas"), so they are never CSV-split.
+ * Removes `locations` from `cleaned`; throws when more than the max are given.
+ */
+function foldSearchLocations(
+	ctx: IExecuteFunctions,
+	body: IDataObject,
+	cleaned: IDataObject,
+	itemIndex: number,
+): void {
+	const raw = cleaned.locations as IDataObject | undefined;
+	delete cleaned.locations;
+	if (!raw || typeof raw !== 'object') return;
+
+	const entries = (raw.location as IDataObject[] | undefined) ?? [];
+	const locations = entries.reduce<string[]>((acc, entry) => {
+		const value = String(entry?.value ?? '').trim();
+		if (value) acc.push(value);
+		return acc;
+	}, []);
+
+	if (locations.length > SEARCH_LOCATIONS_MAX) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`Locations accepts at most ${SEARCH_LOCATIONS_MAX} entries (got ${locations.length})`,
+			{ itemIndex },
+		);
+	}
+	if (locations.length) body.locations = locations;
+}
+
+/**
+ * Fold flattened search `additionalFields` into the nested/array shapes the MCP
+ * schemas expect: jobChanges + pastCompany objects and the newsTypeDates array.
+ * Mutates `cleaned` (removes consumed keys) and sets results on `body`.
+ */
+function foldSearchObjectFilters(body: IDataObject, cleaned: IDataObject): void {
+	const jobChanges = cleanObj({
+		changeType: cleaned.jobChangeType,
+		dayRange: cleaned.jobChangeDayRange,
+	});
+	delete cleaned.jobChangeType;
+	delete cleaned.jobChangeDayRange;
+	if (Object.keys(jobChanges).length) body.jobChanges = jobChanges;
+
+	const pastCompanyNames = csvToStringArray(cleaned.pastCompanyNames);
+	if (pastCompanyNames.length) {
+		const pastCompany: IDataObject = { names: pastCompanyNames };
+		if (cleaned.pastCompanyOnlyMostRecentDeparture === true) {
+			pastCompany.onlyMostRecentDeparture = true;
+		}
+		if (cleaned.pastCompanyExactMatch === true) {
+			pastCompany.exactMatch = true;
+		}
+		body.pastCompany = pastCompany;
+	}
+	delete cleaned.pastCompanyNames;
+	delete cleaned.pastCompanyOnlyMostRecentDeparture;
+	delete cleaned.pastCompanyExactMatch;
+
+	// The MCP schema takes newsTypeDates as an array holding a single value.
+	if (cleaned.newsTypeDates !== undefined) {
+		body.newsTypeDates = [cleaned.newsTypeDates];
+		delete cleaned.newsTypeDates;
+	}
+}
 
 async function executeContact(
 	this: IExecuteFunctions,
@@ -349,12 +422,14 @@ async function executeContact(
 			{}
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
+		foldSearchLocations(this, body, cleaned, i);
 		for (const key of CONTACT_SEARCH_CSV_KEYS) {
 			if (cleaned[key] !== undefined) {
 				setStringArray(body, key, cleaned[key]);
 				delete cleaned[key];
 			}
 		}
+		foldSearchObjectFilters(body, cleaned);
 		Object.assign(body, cleaned);
 
 		return seamlessMcpSearchAll.call(
@@ -383,6 +458,18 @@ async function executeContact(
 			false,
 		) as boolean;
 		if (isJobChange) body.isJobChange = true;
+
+		const listIds = csvToNumberArray(
+			this.getNodeParameter('listIds', i, ''),
+		);
+		if (listIds.length) body.listIds = listIds;
+
+		const skipDeduplicationCheck = this.getNodeParameter(
+			'skipDeduplicationCheck',
+			i,
+			false,
+		) as boolean;
+		if (skipDeduplicationCheck) body.skipDeduplicationCheck = true;
 
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
@@ -441,6 +528,25 @@ async function executeContact(
 		);
 	}
 
+	if (operation === 'update') {
+		const contactIds = csvToNumberArray(
+			this.getNodeParameter('contactIds', i),
+		);
+		const listIds = csvToNumberArray(
+			this.getNodeParameter('listIds', i, ''),
+		);
+		const listAction = this.getNodeParameter(
+			'listAction',
+			i,
+			'add',
+		) as string;
+		return seamlessMcpCall.call(this, 'update_my_contact', {
+			contactIds,
+			listIds,
+			listAction,
+		});
+	}
+
 	return {};
 }
 
@@ -453,6 +559,8 @@ const COMPANY_SEARCH_CSV_KEYS = [
 	'companyZipCode',
 	'companyKeyword',
 	'technologies',
+	'industrySicCodes',
+	'industryNaicsCodes',
 ];
 
 async function executeCompany(
@@ -489,12 +597,14 @@ async function executeCompany(
 			{}
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
+		foldSearchLocations(this, body, cleaned, i);
 		for (const key of COMPANY_SEARCH_CSV_KEYS) {
 			if (cleaned[key] !== undefined) {
 				setStringArray(body, key, cleaned[key]);
 				delete cleaned[key];
 			}
 		}
+		foldSearchObjectFilters(body, cleaned);
 		Object.assign(body, cleaned);
 
 		return seamlessMcpSearchAll.call(
@@ -516,6 +626,13 @@ async function executeCompany(
 		const companies = this.getNodeParameter('companies', i, '[]') as string;
 		const parsed = JSON.parse(companies);
 		if (Array.isArray(parsed) && parsed.length) body.companies = parsed;
+
+		const skipDeduplicationCheck = this.getNodeParameter(
+			'skipDeduplicationCheck',
+			i,
+			false,
+		) as boolean;
+		if (skipDeduplicationCheck) body.skipDeduplicationCheck = true;
 
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
@@ -574,6 +691,25 @@ async function executeCompany(
 		);
 	}
 
+	if (operation === 'update') {
+		const companyIds = csvToNumberArray(
+			this.getNodeParameter('companyIds', i),
+		);
+		const listIds = csvToNumberArray(
+			this.getNodeParameter('listIds', i, ''),
+		);
+		const listAction = this.getNodeParameter(
+			'listAction',
+			i,
+			'add',
+		) as string;
+		return seamlessMcpCall.call(this, 'update_my_company', {
+			companyIds,
+			listIds,
+			listAction,
+		});
+	}
+
 	return {};
 }
 
@@ -604,6 +740,32 @@ async function executeList(
 		const id = extractRlId(this, 'listId', i);
 		await seamlessMcpCall.call(this, 'delete_list', { id });
 		return { deleted: true };
+	}
+	return {};
+}
+
+// ─── Location ───────────────────────────────────────────────────────────────
+
+async function executeLocation(
+	this: IExecuteFunctions,
+	operation: string,
+	i: number
+): Promise<IDataObject | IDataObject[]> {
+	if (operation === 'lookup') {
+		const body: IDataObject = {
+			q: this.getNodeParameter('q', i) as string,
+		};
+		const limit = this.getNodeParameter('limit', i, 50) as number;
+		if (limit) body.limit = limit;
+		const types = this.getNodeParameter('types', i, []) as string[];
+		if (types.length) body.types = types;
+
+		const response = await seamlessMcpCall.call(
+			this,
+			'lookup_locations',
+			body,
+		);
+		return (response.data || response) as IDataObject[];
 	}
 	return {};
 }
@@ -645,15 +807,27 @@ async function executeCampaign(
 	}
 	if (operation === 'getMany') {
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
+		const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
 		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
-		args.limit = Math.min(
-			this.getNodeParameter('limit', i, CAMPAIGN_LIST_MAX_LIMIT) as number,
-			CAMPAIGN_LIST_MAX_LIMIT,
-		);
-		const result = await seamlessMcpCall.call(this, 'list_campaigns', args);
-		return simplifyResults(result, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
+		const status = this.getNodeParameter('status', i, []) as string[];
+		if (status.length) args.status = status;
+
+		if (returnAll) {
+			const items = await seamlessMcpCallAllOffsets.call(
+				this,
+				'list_campaigns',
+				args,
+				50,
+			);
+			return simplifyResults(items, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
+		}
+		args.limit = this.getNodeParameter('limit', i, 50) as number;
+		args.offset = this.getNodeParameter('offset', i, 0) as number;
+		const response = await seamlessMcpCall.call(this, 'list_campaigns', args);
+		const items = (response.data || response) as IDataObject | IDataObject[];
+		return simplifyResults(items, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 	}
 	if (operation === 'update') {
 		const target = extractCampaignTarget(this, 'campaignId', i);
@@ -1032,6 +1206,9 @@ async function executeEmail(
 		) as IDataObject;
 		const cleaned = cleanObj(additionalFields);
 		dropZeroIds(cleaned, ['templateId']);
+		// send_email has no scheduleAt in its MCP schema; drop it so workflows
+		// saved before the field was hidden don't silently send unscheduled.
+		delete cleaned.scheduleAt;
 		Object.assign(body, cleaned);
 		return seamlessMcpCall.call(this, 'send_email', body);
 	}
@@ -1087,8 +1264,10 @@ async function executeTask(
 		const body: IDataObject = {
 			name: this.getNodeParameter('name', i) as string,
 			taskType: this.getNodeParameter('taskType', i) as string,
-			contactId: this.getNodeParameter('contactId', i) as number,
+			contactId: this.getNodeParameter('contactId', i, 0) as number,
 		};
+		// contactId is optional in the MCP schema; 0 means "standalone task".
+		dropZeroIds(body, ['contactId']);
 		const additionalFields = this.getNodeParameter(
 			'additionalFields',
 			i,
@@ -1110,7 +1289,9 @@ async function executeTask(
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const args: IDataObject = {};
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
-		Object.assign(args, cleanObj(filters));
+		const cleanedFilters = cleanObj(filters);
+		dropZeroIds(cleanedFilters, ['campaignId']);
+		Object.assign(args, cleanedFilters);
 
 		if (returnAll) {
 			const allItems = await seamlessMcpCallAllOffsets.call(
@@ -1326,6 +1507,7 @@ class Seamless implements INodeType {
 					{ name: 'Email Account', value: 'emailAccount' },
 					{ name: 'Email Footer', value: 'emailFooter' },
 					{ name: 'List', value: 'list' },
+					{ name: 'Location', value: 'location' },
 					{ name: 'Saved Search', value: 'savedSearch' },
 					{ name: 'Task', value: 'task' },
 					{ name: 'Template', value: 'template' },
@@ -1335,6 +1517,7 @@ class Seamless implements INodeType {
 			...contactOperations,
 			...companyOperations,
 			...listOperations,
+			...locationOperations,
 			...creditsOperations,
 			...campaignOperations,
 			...campaignStepOperations,
@@ -1350,6 +1533,7 @@ class Seamless implements INodeType {
 			...contactFields,
 			...companyFields,
 			...listFields,
+			...locationFields,
 			...creditsFields,
 			...campaignFields,
 			...campaignStepFields,
@@ -1390,10 +1574,12 @@ class Seamless implements INodeType {
 				this: ILoadOptionsFunctions,
 				filter?: string,
 			): Promise<INodeListSearchResult> {
+				const args: IDataObject = { limit: 50 };
+				if (filter) args.searchText = filter;
 				const response = await seamlessMcpCall.call(
 					this,
 					'list_campaigns',
-					{ limit: 25 },
+					args,
 				);
 				const items = (response.data || response) as IDataObject[];
 				const results = (Array.isArray(items) ? items : [])
@@ -1508,6 +1694,12 @@ class Seamless implements INodeType {
 					);
 				} else if (resource === 'list') {
 					responseData = await executeList.call(this, operation, i);
+				} else if (resource === 'location') {
+					responseData = await executeLocation.call(
+						this,
+						operation,
+						i
+					);
 				} else if (resource === 'credits') {
 					responseData = await seamlessMcpCall.call(
 						this,

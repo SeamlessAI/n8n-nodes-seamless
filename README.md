@@ -103,6 +103,17 @@ Contributions are welcome! Please open an issue or submit a pull request.
 5. Push to the branch (`git push origin feature/my-feature`)
 6. Open a Pull Request
 
+### Known lint issue: repo checked out directly under `/`
+
+If the repo lives in a directory whose parent is the filesystem root (e.g. `/workspace`, the default for Cursor Cloud Agents), `npm run lint` reports four false `@n8n/community-nodes/no-credential-reuse` errors claiming `seamlessApi` / `seamlessOAuth2Api` are not defined in this package. This is an upstream bug in `@n8n/eslint-plugin-community-nodes`: its `findPackageJson` loop stops before checking `package.json` in a top-level directory, so the rule never sees the credentials list. The code is fine; lint from any deeper path instead:
+
+```bash
+git worktree add /tmp/lint-wt HEAD
+ln -s "$PWD/node_modules" /tmp/lint-wt/node_modules
+(cd /tmp/lint-wt && npm run lint)
+git worktree remove --force /tmp/lint-wt
+```
+
 ## Publishing
 
 This package is published to npm via a GitHub Actions workflow with provenance, triggered by pushing a version tag:

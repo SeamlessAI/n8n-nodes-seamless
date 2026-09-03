@@ -10,12 +10,14 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 		research: 'research_contacts',
 		getMany: 'get_my_contacts',
 		pollResearch: 'poll_contact_research',
+		update: 'update_my_contact',
 	},
 	company: {
 		search: 'search_companies',
 		research: 'research_companies',
 		getMany: 'get_my_companies',
 		pollResearch: 'poll_company_research',
+		update: 'update_my_company',
 	},
 	list: {
 		create: 'create_list',
@@ -23,6 +25,9 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 		getMany: 'get_lists',
 		update: 'update_list',
 		delete: 'delete_list',
+	},
+	location: {
+		lookup: 'lookup_locations',
 	},
 	credits: {
 		getCredits: 'get_credits',

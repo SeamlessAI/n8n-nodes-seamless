@@ -140,9 +140,8 @@ const taskFields: INodeProperties[] = [
 		name: 'contactId',
 		type: 'number',
 		default: 0,
-		required: true,
 		description:
-			'The saved contact ID to associate with (from get_my_contacts)',
+			'The saved contact ID to associate with (from get_my_contacts). Leave 0 for a standalone task.',
 		displayOptions: { show: { resource: ['task'], operation: ['create'] } },
 	},
 	{
@@ -306,6 +305,15 @@ const taskFields: INodeProperties[] = [
 			show: { resource: ['task'], operation: ['getMany'] },
 		},
 		options: [
+			{
+				displayName: 'Campaign ID',
+				name: 'campaignId',
+				type: 'number',
+				default: 0,
+				typeOptions: { minValue: 0 },
+				description:
+					'Filter tasks by numeric campaign ID. Campaign Identifier takes precedence if both are given.',
+			},
 			{
 				displayName: 'Campaign Identifier',
 				name: 'campaignIdentifier',

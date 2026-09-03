@@ -12,7 +12,8 @@ const listOperations: INodeProperties[] = [
 				name: 'Create',
 				value: 'create',
 				action: 'Create list',
-				description: 'Create a new contact list',
+				description:
+					'Create a new contact list. Populate it with the Contact/Company Update operation, or via List IDs on Contact Research.',
 			},
 			{
 				name: 'Delete',
