@@ -138,9 +138,9 @@ If the user provided instructions, use those. Otherwise derive cases from `git d
 | `nodes/Seamless/descriptions/searchShared.ts` | Contact Search and Company Search with Locations entries |
 | `nodes/Seamless/GenericFunctions.ts`, `Seamless.node.ts`, `toolMapping.ts` | Default sequence plus one operation per touched resource |
 | `nodes/Seamless/SeamlessTrigger.node.ts` | Trigger test (browser only, step 7) |
-| `credentials/*` | Re-create credentials in the browser, then Credits → Get Balance |
+| `credentials/*` | Re-create credentials in the browser, then Credits → Get Credits |
 
-If there are no changes vs `main` (or you are on `main`), fall back to the default sequence: **Credits → Get Balance**, then **Contact → Get Many** (limit 1).
+If there are no changes vs `main` (or you are on `main`), fall back to the default sequence: **Credits → Get Credits**, then **Contact → Get Many** (limit 1).
 
 For each case, assert on the MCP `tools/call` arguments the node sent (not just "it ran"): array fields are arrays, `0`-valued optional IDs are dropped, flattened filters are folded (`jobChanges`, `pastCompany`, `newsTypeDates`), `locations` entries keep their commas, pagination uses the expected `offset`/`limit`.
 
@@ -161,7 +161,7 @@ Generate one workflow JSON per case under `/tmp/`. Node type is `@seamless-oss/n
 ```json
 {
   "id": "skilltestcase0001",
-  "name": "skill-test-credits-getBalance",
+  "name": "skill-test-credits-getCredits",
   "active": false,
   "settings": {},
   "nodes": [
@@ -172,7 +172,7 @@ Generate one workflow JSON per case under `/tmp/`. Node type is `@seamless-oss/n
       "type": "@seamless-oss/n8n-nodes-seamless.seamless",
       "typeVersion": 1,
       "position": [220, 0],
-      "parameters": { "authentication": "apiKey", "resource": "credits", "operation": "getBalance" },
+      "parameters": { "authentication": "apiKey", "resource": "credits", "operation": "getCredits" },
       "credentials": { "seamlessApi": { "id": "<credId>", "name": "<credName>" } }
     }
   ],
@@ -230,7 +230,7 @@ End with a fixed format:
 
 | Resource | Operation | Path | Result | Error | Screenshot |
 |---|---|---|---|---|---|
-| credits | getBalance | headless | pass (1 item) | — | — |
+| credits | getCredits | headless | pass (1 item) | — | — |
 
 Plus: n8n version (`n8n --version`), node package version (from `package.json`), the git SHA tested (`git rev-parse --short HEAD`), and whether the credential was live or mock.
 
