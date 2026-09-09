@@ -30,7 +30,7 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 		lookup: 'lookup_locations',
 	},
 	credits: {
-		getCredits: 'get_credits',
+		getBalance: 'get_credits',
 	},
 	campaign: {
 		create: 'create_campaign',
