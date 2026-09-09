@@ -9,13 +9,13 @@ const creditsOperations: INodeProperties[] = [
 		displayOptions: { show: { resource: ['credits'] } },
 		options: [
 			{
-				name: 'Get Balance',
-				value: 'getBalance',
-				action: 'Get credit balance',
+				name: 'Get Credits',
+				value: 'getCredits',
+				action: 'Get credits',
 				description: 'Retrieve the current credit balance and usage',
 			},
 		],
-		default: 'getBalance',
+		default: 'getCredits',
 	},
 ];
 
