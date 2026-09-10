@@ -352,13 +352,11 @@ function foldSearchObjectFilters(body: IDataObject, cleaned: IDataObject): void 
 		if (cleaned.pastCompanyOnlyMostRecentDeparture === true) {
 			pastCompany.onlyMostRecentDeparture = true;
 		}
-		if (cleaned.pastCompanyExactMatch === true) {
-			pastCompany.exactMatch = true;
-		}
 		body.pastCompany = pastCompany;
 	}
 	delete cleaned.pastCompanyNames;
 	delete cleaned.pastCompanyOnlyMostRecentDeparture;
+	// Removed from the MCP schema (SEAM-43456); strip it from workflows saved with the old field.
 	delete cleaned.pastCompanyExactMatch;
 
 	// The MCP schema takes newsTypeDates as an array holding a single value.
