@@ -505,7 +505,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Run the filters held by a saved search. Cannot be combined with other filters.',
+					'Numeric ID of a saved search (from Saved Search > Get Many). Runs the filters it holds; cannot be combined with other filters.',
 			},
 			{
 				displayName: 'Technologies',

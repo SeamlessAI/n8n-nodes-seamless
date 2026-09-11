@@ -364,6 +364,13 @@ function foldSearchObjectFilters(body: IDataObject, cleaned: IDataObject): void 
 		body.newsTypeDates = [cleaned.newsTypeDates];
 		delete cleaned.newsTypeDates;
 	}
+
+	// MCP `intId()` accepts a number or digit-only string; normalize free-text input.
+	if (cleaned.savedSearchId !== undefined) {
+		const raw = String(cleaned.savedSearchId).trim();
+		body.savedSearchId = /^\d+$/.test(raw) ? Number(raw) : raw;
+		delete cleaned.savedSearchId;
+	}
 }
 
 async function executeContact(
