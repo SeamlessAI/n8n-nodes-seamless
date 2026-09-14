@@ -20,14 +20,15 @@ const contactOperations: INodeProperties[] = [
 				name: 'Poll Research',
 				value: 'pollResearch',
 				action: 'Poll contact research results',
-				description: 'Check the status of a pending research request',
+				description:
+					'Check the status of a pending research request. Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first).',
 			},
 			{
 				name: 'Research',
 				value: 'research',
 				action: 'Research contacts',
 				description:
-					'Enrich contacts with verified data (consumes credits)',
+					'Enrich contacts with verified emails, phone numbers, job history, and other data (consumes credits)',
 			},
 			{
 				name: 'Search',
@@ -475,20 +476,12 @@ const contactFields: INodeProperties[] = [
 					'1-based page number, for jumping to a specific offset. Prefer Next Token for sequential paging.',
 			},
 			{
-				displayName: 'Past Company Exact Match',
-				name: 'pastCompanyExactMatch',
-				type: 'boolean',
-				default: false,
-				description:
-					'Whether Past Company Names must match exactly. Defaults to false (relevance matching).',
-			},
-			{
 				displayName: 'Past Company Names',
 				name: 'pastCompanyNames',
 				type: 'string',
 				default: '',
 				description:
-					'Filter to contacts who previously worked at these companies. Comma-separated values to provide multiple.',
+					'Filter to contacts who previously worked at these companies. Names always match on relevance, so aliases and name fragments match too. Comma-separated values to provide multiple.',
 			},
 			{
 				displayName: 'Past Company Only Most Recent Departure',
@@ -512,7 +505,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Run the filters held by a saved search. Cannot be combined with other filters.',
+					'Numeric ID of a saved search (from Saved Search > Get Many). Runs the filters it holds; cannot be combined with other filters.',
 			},
 			{
 				displayName: 'Technologies',
