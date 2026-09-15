@@ -21,7 +21,7 @@ const contactOperations: INodeProperties[] = [
 				value: 'pollResearch',
 				action: 'Poll contact research results',
 				description:
-					'Check the status of a pending research request. Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first).',
+					'Check the status of a pending research request. Keep polling while any result is queued or researching. Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first).',
 			},
 			{
 				name: 'Research',
@@ -332,7 +332,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple. Matched against the company\'s own NAICS code; a company with no NAICS code also matches when its SIC code maps to a requested code.',
 			},
 			{
 				displayName: 'Industry SIC Codes',
