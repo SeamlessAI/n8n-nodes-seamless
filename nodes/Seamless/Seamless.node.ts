@@ -217,6 +217,25 @@ const BULK_FILTER_STRING_ARRAY_KEYS = [
 	'technologies',
 ];
 const BULK_FILTER_NUMBER_ARRAY_KEYS = ['contactIds', 'lists', 'campaignIds'];
+// send_bulk_email rejects a filter set without one of these so the whole
+// address book is never mailed.
+const BULK_FILTER_AUDIENCE_KEYS = [
+	...BULK_FILTER_NUMBER_ARRAY_KEYS,
+	'queryText',
+	'queryTextName',
+	'queryTextCompany',
+	'queryTextDomain',
+	'queryTextTitle',
+	'queryTextLocation',
+];
+
+function hasBulkAudienceSelector(filters: IDataObject): boolean {
+	return BULK_FILTER_AUDIENCE_KEYS.some((key) => {
+		const value = filters[key];
+		if (Array.isArray(value)) return value.length > 0;
+		return typeof value === 'string' && value.trim() !== '';
+	});
+}
 
 function normalizeBulkFilters(raw: IDataObject): IDataObject {
 	const out: IDataObject = {};
@@ -1236,7 +1255,14 @@ async function executeEmail(
 			{},
 		) as IDataObject;
 		const normalized = normalizeBulkFilters(filtersRaw);
-		if (Object.keys(normalized).length > 0) body.filters = normalized;
+		if (!hasBulkAudienceSelector(normalized)) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'Filters must include at least one of Lists, Contact IDs, Campaign IDs, or a text query (Query Text, Query Text Name, Query Text Company, Query Text Domain, Query Text Title, Query Text Location)',
+				{ itemIndex: i },
+			);
+		}
+		body.filters = normalized;
 		return seamlessMcpCall.call(this, 'send_bulk_email', body);
 	}
 	if (operation === 'preview') {
