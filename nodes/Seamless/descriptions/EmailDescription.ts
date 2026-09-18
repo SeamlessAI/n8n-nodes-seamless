@@ -38,7 +38,7 @@ const emailOperations: INodeProperties[] = [
 				value: 'sendBulk',
 				action: 'Send bulk emails',
 				description:
-					'Send an email to multiple contacts matching filters',
+					'Send an email to up to 500 saved contacts matching filters. Filters must include Lists, Contact IDs, Campaign IDs, or a text query; opted-out and unsubscribed contacts are skipped.',
 			},
 			{
 				name: 'Send Draft',
@@ -395,6 +395,14 @@ const emailFields: INodeProperties[] = [
 					'Email body HTML (required if no Template ID). Supports template variables.',
 			},
 			{
+				displayName: 'Idempotency Key',
+				name: 'idempotencyKey',
+				type: 'string',
+				default: '',
+				description:
+					'Retry token (max 255 characters). Re-sending the same request with the same key returns the original job instead of mailing again; the same key with a different audience or message is rejected.',
+			},
+			{
 				displayName: 'Schedule At',
 				name: 'scheduleAt',
 				type: 'dateTime',
@@ -423,7 +431,8 @@ const emailFields: INodeProperties[] = [
 		type: 'collection',
 		placeholder: 'Add Filter',
 		default: {},
-		description: 'Filter criteria to select saved contacts for bulk email',
+		description:
+			'Filter criteria to select saved contacts for bulk email. Must include at least one of Lists, Contact IDs, Campaign IDs, or a text query. The send is rejected (not truncated) if more than 500 contacts match.',
 		displayOptions: {
 			show: { resource: ['email'], operation: ['sendBulk'] },
 		},

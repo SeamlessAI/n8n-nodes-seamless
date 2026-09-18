@@ -14,13 +14,15 @@ const companyOperations: INodeProperties[] = [
 				name: 'Get Many',
 				value: 'getMany',
 				action: 'Get many companies',
-				description: 'Retrieve a list of researched companies',
+				description:
+					'Retrieve a list of researched companies as normalized records (companyId, name, domain, industries, staffCount, revenueRange, location, …), the same shape as Poll Research results',
 			},
 			{
 				name: 'Poll Research',
 				value: 'pollResearch',
 				action: 'Poll company research results',
-				description: 'Check the status of a pending research request',
+				description:
+					'Check the status of a pending research request (missing, researching, done, or error). Done results carry the enriched company.',
 			},
 			{
 				name: 'Research',
@@ -219,7 +221,7 @@ const companyFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple. Matched against the company\'s own NAICS code; a company with no NAICS code also matches when its SIC code maps to a requested code.',
 			},
 			{
 				displayName: 'Industry SIC Codes',
