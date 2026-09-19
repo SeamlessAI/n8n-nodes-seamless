@@ -34,7 +34,8 @@ const contactOperations: INodeProperties[] = [
 				name: 'Search',
 				value: 'search',
 				action: 'Search contacts',
-				description: 'Find contacts matching filter criteria',
+				description:
+					'Find contacts matching filter criteria. Results use the filter vocabulary (fullName, jobTitle, companyName, companySize) so they can be fed back into another search; the older name/title/company/employeeSizeRange fields are deprecated aliases kept for one release.',
 			},
 			{
 				name: 'Update',
