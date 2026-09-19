@@ -35,7 +35,8 @@ const companyOperations: INodeProperties[] = [
 				name: 'Search',
 				value: 'search',
 				action: 'Search companies',
-				description: 'Find companies matching filter criteria',
+				description:
+					'Find companies matching filter criteria. Results use the filter vocabulary (companyName, companySize, companyRevenue) so they can be fed back into another search; the older name/staffCountRange/revenueRange fields are deprecated aliases kept for one release.',
 			},
 			{
 				name: 'Update',
