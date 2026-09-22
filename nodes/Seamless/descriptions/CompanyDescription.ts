@@ -376,7 +376,8 @@ const companyFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		placeholder: 'e.g. abc123,def456',
-		description: 'Comma-separated search result IDs from a prior search',
+		description:
+			'Comma-separated search result IDs from a prior search. Shares a budget of 500 items per call with Companies (JSON).',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['research'] },
 		},
@@ -387,7 +388,7 @@ const companyFields: INodeProperties[] = [
 		type: 'json',
 		default: '[]',
 		description:
-			'JSON array of companies to research. Each object needs a domain or companyName.',
+			'JSON array of companies to research. Each object needs a domain or companyName. Shares a budget of 500 items per call with Search Result IDs.',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['research'] },
 		},
@@ -471,7 +472,8 @@ const companyFields: INodeProperties[] = [
 		default: '',
 		required: true,
 		placeholder: 'e.g. req_abc123,req_def456',
-		description: 'Comma-separated request IDs from a prior research call',
+		description:
+			'Comma-separated request IDs from a prior research call (up to 500 per call)',
 		displayOptions: {
 			show: { resource: ['company'], operation: ['pollResearch'] },
 		},
