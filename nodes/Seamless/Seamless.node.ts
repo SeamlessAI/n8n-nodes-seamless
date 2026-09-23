@@ -424,9 +424,11 @@ async function executeContact(
 			'industry',
 			this.getNodeParameter('industry', i, '')
 		);
+		// Node param keeps its `fullname` name for saved workflows; MCP canonical
+		// filter is `fullName` (`fullname` is a deprecated alias, SEAM-43797).
 		setStringArray(
 			body,
-			'fullname',
+			'fullName',
 			this.getNodeParameter('fullname', i, '')
 		);
 

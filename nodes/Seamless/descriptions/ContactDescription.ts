@@ -34,7 +34,8 @@ const contactOperations: INodeProperties[] = [
 				name: 'Search',
 				value: 'search',
 				action: 'Search contacts',
-				description: 'Find contacts matching filter criteria',
+				description:
+					'Find contacts matching filter criteria. Results use the filter vocabulary (fullName, jobTitle, companyName, companySize) so they can be fed back into another search; the older name/title/company/employeeSizeRange fields are deprecated aliases kept for one release.',
 			},
 			{
 				name: 'Update',
@@ -628,7 +629,8 @@ const contactFields: INodeProperties[] = [
 		type: 'string',
 		default: '',
 		placeholder: 'e.g. abc123,def456',
-		description: 'Comma-separated search result IDs from a prior search',
+		description:
+			'Comma-separated search result IDs from a prior search. Shares a budget of 500 items per call with Contacts (JSON).',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['research'] },
 		},
@@ -639,7 +641,7 @@ const contactFields: INodeProperties[] = [
 		type: 'json',
 		default: '[]',
 		description:
-			'JSON array of contacts to research. Each object needs contactName+companyName, contactName+domain, email, liProfileUrl, liSalesNavUrl, or liRecruiterUrl.',
+			'JSON array of contacts to research. Each object needs contactName+companyName, contactName+domain, email, liProfileUrl, liSalesNavUrl, or liRecruiterUrl. Shares a budget of 500 items per call with Search Result IDs.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['research'] },
 		},
@@ -745,7 +747,8 @@ const contactFields: INodeProperties[] = [
 		default: '',
 		required: true,
 		placeholder: 'e.g. req_abc123,req_def456',
-		description: 'Comma-separated request IDs from a prior research call',
+		description:
+			'Comma-separated request IDs from a prior research call (up to 500 per call)',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['pollResearch'] },
 		},
