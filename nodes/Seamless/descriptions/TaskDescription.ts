@@ -238,6 +238,8 @@ const taskFields: INodeProperties[] = [
 		type: 'options',
 		default: 'start',
 		required: true,
+		description:
+			'Case-insensitive when supplied via an expression',
 		displayOptions: {
 			show: { resource: ['task'], operation: ['executeAction'] },
 		},

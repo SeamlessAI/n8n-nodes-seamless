@@ -194,6 +194,8 @@ const campaignFields: INodeProperties[] = [
 		type: 'options',
 		default: 'START',
 		required: true,
+		description:
+			'Allowed transitions: DRAFT → START/ARCHIVE; ACTIVE → PAUSE/COMPLETE/ARCHIVE; PAUSED → RESUME/ARCHIVE; ARCHIVED → UNARCHIVE/DELETE. Case-insensitive when supplied via an expression.',
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['executeAction'] },
 		},

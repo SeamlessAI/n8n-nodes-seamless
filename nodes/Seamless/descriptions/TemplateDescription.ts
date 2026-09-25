@@ -132,7 +132,7 @@ const templateFields: INodeProperties[] = [
 				default: '',
 				typeOptions: { rows: 5 },
 				description:
-					'Email body HTML. Supports template variables like {first_name}, {company}.',
+					'Email body HTML. Supports template variables like [first_name], [company].',
 			},
 			{
 				displayName: 'Content Category',
@@ -164,7 +164,7 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Email subject. Supports template variables like {first_name}, {company}.',
+					'Email subject. Supports template variables like [first_name], [company].',
 			},
 			{
 				displayName: 'Type',
