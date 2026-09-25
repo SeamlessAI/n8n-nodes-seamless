@@ -64,7 +64,7 @@ const campaignStepTemplateDataField: INodeProperties = {
 					type: 'string',
 					default: '',
 					description:
-						'Email subject line. Supports template variables like {first_name}, {company}.',
+						'Email subject line. Supports template variables like [first_name], [company].',
 				},
 				{
 					displayName: 'Template',
@@ -73,7 +73,7 @@ const campaignStepTemplateDataField: INodeProperties = {
 					default: '',
 					typeOptions: { rows: 5 },
 					description:
-						'Email body HTML content. Supports template variables like {first_name}, {company}, {title}.',
+						'Email body HTML content. Supports template variables like [first_name], [company], [title].',
 				},
 			],
 		},

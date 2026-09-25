@@ -152,6 +152,8 @@ const campaignStepFields: INodeProperties[] = [
 		type: 'options',
 		default: 'PAUSE',
 		required: true,
+		description:
+			'Case-insensitive when supplied via an expression',
 		displayOptions: {
 			show: { resource: ['campaignStep'], operation: ['executeAction'] },
 		},
