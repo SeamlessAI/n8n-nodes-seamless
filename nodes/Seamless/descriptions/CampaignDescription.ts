@@ -73,7 +73,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Remove Contacts',
 				value: 'removeContacts',
 				action: 'Remove contacts from campaign',
-				description: 'Remove contacts from a campaign by ID (max 500)',
+				description:
+					'Remove contacts from a campaign by ID (max 500). Returns the updated campaign and contactsRemoved — the number actually removed, which is 0 when none of the IDs are currently enrolled. Does not delete the contacts themselves.',
 			},
 			{
 				name: 'Update',
