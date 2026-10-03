@@ -379,7 +379,7 @@ const contactFields: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description:
-					'Whether multiple Contact Keyword values match ANY of them (true) or require ALL of them (false)',
+					'Whether multiple positive Contact Keyword values match ANY of them (true) or require ALL of them (false). Values prefixed with "-" are always excluded in either mode.',
 			},
 			{
 				displayName: 'Last Modified After',

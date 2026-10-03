@@ -110,7 +110,8 @@ const companyFields: INodeProperties[] = [
 				name: 'companyKeyword',
 				type: 'string',
 				default: '',
-				description: 'Comma-separated values to provide multiple',
+				description:
+					'Free-text keywords matched against the company record (e.g. renewable energy). Prefix a value with "-" to exclude it; excluded keywords always narrow the results regardless of Keywords Is Or. Comma-separated values to provide multiple.',
 			},
 			{
 				displayName: 'Company Name Search Type',
@@ -238,7 +239,7 @@ const companyFields: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description:
-					'Whether multiple Company Keyword values match ANY of them (true) or require ALL of them (false)',
+					'Whether multiple positive Company Keyword values match ANY of them (true) or require ALL of them (false). Values prefixed with "-" are always excluded in either mode.',
 			},
 			{
 				displayName: 'Latest Funding Classifications',
