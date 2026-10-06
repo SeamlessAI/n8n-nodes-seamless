@@ -35,7 +35,7 @@ const contactOperations: INodeProperties[] = [
 				value: 'search',
 				action: 'Search contacts',
 				description:
-					'Find contacts matching filter criteria. Results use the filter vocabulary (fullName, jobTitle, companyName, companySize) so they can be fed back into another search; the older name/title/company/employeeSizeRange fields are deprecated aliases kept for one release.',
+					'Find contacts matching filter criteria. At least one filter (or a Saved Search ID) is required; a search with none is rejected rather than returning an empty page. Results use the filter vocabulary (fullName, jobTitle, companyName, companySize) so they can be fed back into another search; the older name/title/company/employeeSizeRange fields are deprecated aliases kept for one release.',
 			},
 			{
 				name: 'Update',
@@ -379,7 +379,7 @@ const contactFields: INodeProperties[] = [
 				type: 'boolean',
 				default: false,
 				description:
-					'Whether multiple Contact Keyword values match ANY of them (true) or require ALL of them (false)',
+					'Whether multiple positive Contact Keyword values match ANY of them (true) or require ALL of them (false). Values prefixed with "-" are always excluded in either mode.',
 			},
 			{
 				displayName: 'Last Modified After',
