@@ -392,6 +392,34 @@ function foldSearchObjectFilters(body: IDataObject, cleaned: IDataObject): void 
 	}
 }
 
+/**
+ * Args that never narrow a contact search: pagination, match-mode toggles that
+ * carry schema defaults, and radius args (which only widen a location filter).
+ * Mirrors the MCP `search_contacts` handler (SEAM-43652).
+ */
+const CONTACT_SEARCH_NON_FILTER_KEYS = [
+	'nextToken',
+	'limit',
+	'page',
+	'savedSearchId',
+	'companyNameSearchType',
+	'locationType',
+	'timezoneType',
+	'technologiesIsOr',
+	'keywordsIsOr',
+	'titlesExactMatch',
+	'locationRadius',
+	'zipCodesRadius',
+];
+
+function hasContactSearchFilter(body: IDataObject): boolean {
+	return Object.entries(body).some(([key, value]) => {
+		if (CONTACT_SEARCH_NON_FILTER_KEYS.includes(key)) return false;
+		if (Array.isArray(value)) return value.length > 0;
+		return value !== undefined && value !== null && value !== '';
+	});
+}
+
 async function executeContact(
 	this: IExecuteFunctions,
 	operation: string,
@@ -457,6 +485,17 @@ async function executeContact(
 		}
 		foldSearchObjectFilters(body, cleaned);
 		Object.assign(body, cleaned);
+
+		// MCP rejects a filterless search_contacts call (SEAM-43652); fail fast with the same contract.
+		const hasSavedSearch =
+			body.savedSearchId !== undefined && body.savedSearchId !== '';
+		if (!hasSavedSearch && !hasContactSearchFilter(body)) {
+			throw new NodeOperationError(
+				this.getNode(),
+				'At least one contact search filter is required. Add a filter such as Job Title, Company Name, Locations, or Industry, or set Saved Search ID to run a saved search.',
+				{ itemIndex: i },
+			);
+		}
 
 		return seamlessMcpSearchAll.call(
 			this,
