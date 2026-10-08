@@ -12,7 +12,8 @@ const activityOperations: INodeProperties[] = [
 				name: 'Get Many',
 				value: 'getMany',
 				action: 'Get many activities',
-				description: 'Retrieve engagement activity events',
+				description:
+					'Retrieve engagement activity events (opens, replies, bounces, calls). Paginated by limit/offset; the server reports total and hasMore.',
 			},
 		],
 		default: 'getMany',

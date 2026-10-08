@@ -19,13 +19,15 @@ const campaignStepOperations: INodeProperties[] = [
 				name: 'Create',
 				value: 'create',
 				action: 'Create campaign step',
-				description: 'Add a new step to a campaign',
+				description:
+					'Add a new step to a campaign. Automatic email steps require a Template ID or inline Template Data.',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
 				action: 'Delete campaign step',
-				description: 'Remove a step from a campaign',
+				description:
+					'Remove a draft step from a campaign. Remaining steps are renumbered; returns the deleted step and the remaining steps.',
 			},
 			{
 				name: 'Execute Action',
@@ -86,6 +88,8 @@ const campaignStepFields: INodeProperties[] = [
 			show: { resource: ['campaignStep'], operation: ['create'] },
 		},
 		options: CAMPAIGN_STEP_TYPE_OPTIONS,
+		description:
+			'For auto-email and manual-email steps, the campaign must have linked email accounts. Auto-email steps must include a Template ID or Template Data; other email steps should too.',
 	},
 	{
 		displayName: 'Name',

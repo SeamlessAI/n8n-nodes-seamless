@@ -1032,12 +1032,13 @@ async function executeCampaignStep(
 	}
 	if (operation === 'delete') {
 		const stepId = this.getNodeParameter('stepId', i) as number;
-		await seamlessMcpCall.call(
+		const response = await seamlessMcpCall.call(
 			this,
 			'delete_campaign_step',
 			{ campaignStepId: stepId, ...campaignTarget },
 		);
-		return { deleted: true };
+		// MCP returns { deletedStep, steps } (remaining steps renumbered)
+		return { deleted: true, ...response };
 	}
 	if (operation === 'executeAction') {
 		const stepId = this.getNodeParameter('stepId', i) as number;

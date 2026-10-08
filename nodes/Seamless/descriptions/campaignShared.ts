@@ -139,7 +139,7 @@ const campaignStepInlineValues: INodeProperties[] = [
 		required: true,
 		options: CAMPAIGN_STEP_TYPE_OPTIONS,
 		description:
-			'For auto-email and manual-email steps, the campaign must have linked email accounts',
+			'For auto-email and manual-email steps, the campaign must have linked email accounts. Auto-email steps must include a Template ID or Template Data; other email steps should too.',
 	},
 	{
 		displayName: 'Name',
