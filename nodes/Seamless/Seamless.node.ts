@@ -277,6 +277,50 @@ function dropZeroIds(obj: IDataObject, keys: string[]): void {
 	}
 }
 
+const CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH = 10_000;
+
+/** Trimmed aiPrompt, or undefined when blank (server treats blank as absent). */
+function normalizeAiPrompt(raw: unknown): string | undefined {
+	if (typeof raw !== 'string') return undefined;
+	const prompt = raw.trim();
+	return prompt ? prompt : undefined;
+}
+
+/**
+ * MCP rejects a step whose content comes from more than one of templateId,
+ * templateData, or aiPrompt. Fail locally with a clearer message.
+ */
+function assertSingleStepContentSource(
+	ctx: IExecuteFunctions,
+	body: IDataObject,
+	itemIndex: number,
+	label = 'Campaign step',
+): void {
+	const sources = [
+		body.templateId !== undefined && 'Template ID',
+		body.templateData !== undefined && 'Template Data',
+		body.aiPrompt !== undefined && 'AI Prompt',
+	].filter(Boolean);
+	if (sources.length > 1) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`${label}: provide exactly one of Template ID, Template Data, or AI Prompt (got ${sources.join(', ')})`,
+			{ itemIndex },
+		);
+	}
+	const prompt = body.aiPrompt;
+	if (
+		typeof prompt === 'string' &&
+		prompt.length > CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH
+	) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`${label}: AI Prompt must be at most ${CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH} characters (got ${prompt.length})`,
+			{ itemIndex },
+		);
+	}
+}
+
 function buildCampaignStepPayload(fields: IDataObject): IDataObject {
 	const body: IDataObject = {
 		type: fields.type,
@@ -289,18 +333,29 @@ function buildCampaignStepPayload(fields: IDataObject): IDataObject {
 	delete optional.dueDay;
 	const templateData = unwrapTemplateData(optional.templateData);
 	delete optional.templateData;
+	const aiPrompt = normalizeAiPrompt(optional.aiPrompt);
+	delete optional.aiPrompt;
 	dropZeroIds(optional, ['templateId']);
 	Object.assign(body, optional);
 	if (templateData) body.templateData = templateData;
+	if (aiPrompt) body.aiPrompt = aiPrompt;
 	return body;
 }
 
-function parseInlineCampaignSteps(raw: unknown): IDataObject[] {
+function parseInlineCampaignSteps(
+	ctx: IExecuteFunctions,
+	raw: unknown,
+	itemIndex: number,
+): IDataObject[] {
 	if (!raw || typeof raw !== 'object') return [];
 	const collection = raw as IDataObject;
 	const steps = collection.step;
 	if (!Array.isArray(steps) || !steps.length) return [];
-	return steps.map((step) => buildCampaignStepPayload(step as IDataObject));
+	return steps.map((step, idx) => {
+		const body = buildCampaignStepPayload(step as IDataObject);
+		assertSingleStepContentSource(ctx, body, itemIndex, `Step ${idx + 1}`);
+		return body;
+	});
 }
 
 // ─── Contact ────────────────────────────────────────────────────────────────
@@ -859,7 +914,9 @@ async function executeCampaign(
 			if (ids.length) body.contactIds = ids;
 		}
 		const steps = parseInlineCampaignSteps(
+			this,
 			this.getNodeParameter('steps', i, {}),
+			i,
 		);
 		if (steps.length) body.steps = steps;
 		return seamlessMcpCall.call(this, 'create_campaign', body);
@@ -1002,6 +1059,7 @@ async function executeCampaignStep(
 			dueDay: this.getNodeParameter('dueDay', i) as number,
 			...(this.getNodeParameter('additionalFields', i, {}) as IDataObject),
 		});
+		assertSingleStepContentSource(this, body, i);
 		return seamlessMcpCall.call(this, 'create_campaign_step', {
 			...campaignTarget,
 			...body,
@@ -1025,9 +1083,13 @@ async function executeCampaignStep(
 		const cleaned = cleanObj(updateFields);
 		const templateData = unwrapTemplateData(cleaned.templateData);
 		delete cleaned.templateData;
+		const aiPrompt = normalizeAiPrompt(cleaned.aiPrompt);
+		delete cleaned.aiPrompt;
 		dropZeroIds(cleaned, ['templateId', 'stepNumber']);
 		const body: IDataObject = { campaignStepId: stepId, dueDay, ...cleaned };
 		if (templateData) body.templateData = templateData;
+		if (aiPrompt) body.aiPrompt = aiPrompt;
+		assertSingleStepContentSource(this, body, i);
 		return seamlessMcpCall.call(this, 'update_campaign_step', body);
 	}
 	if (operation === 'delete') {

@@ -30,7 +30,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Create',
 				value: 'create',
 				action: 'Create campaign',
-				description: 'Create a new campaign',
+				description:
+					'Create a new campaign, optionally with inline steps and contacts. Each inline step\'s content is exactly one of Template ID, Template Data (static template with merge tags), or AI Prompt (AI writes personalized content per contact when the step runs).',
 			},
 			{
 				name: 'Delete',
