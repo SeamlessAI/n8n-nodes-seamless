@@ -30,7 +30,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Create',
 				value: 'create',
 				action: 'Create campaign',
-				description: 'Create a new campaign',
+				description:
+					'Create a new campaign, optionally with inline steps and contacts. Each inline step\'s content is exactly one of Template ID, Template Data (static template with merge tags), or AI Prompt (AI writes personalized content per contact when the step runs).',
 			},
 			{
 				name: 'Delete',
@@ -43,7 +44,7 @@ const campaignOperations: INodeProperties[] = [
 				value: 'executeAction',
 				action: 'Execute action on campaign',
 				description:
-					'Start, pause, resume, complete, archive, unarchive, or delete a campaign',
+					'Start, pause, resume, complete, archive, unarchive, or delete a campaign. Start/Resume require at least one step, at least one contact, a linked email account when the campaign has email steps, and a template on every unfinished auto-email step.',
 			},
 			{
 				name: 'Get',
@@ -55,7 +56,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Get Contacts',
 				value: 'getContacts',
 				action: 'Get campaign contacts',
-				description: 'Retrieve contacts in a campaign',
+				description:
+					'Retrieve contacts in a campaign with engagement status and current step. Paginated by limit/offset; the server reports total and hasMore.',
 			},
 			{
 				name: 'Get Many',
