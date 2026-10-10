@@ -296,7 +296,27 @@ async function seamlessMcpCallAllOffsets(
 }
 
 /**
+ * Whether a charged search page exhausted the caller's credits (SEAM-44181).
+ * The next page would be rejected with `insufficientCredits`, so stop paging
+ * and keep the rows already paid for. Uncharged pages (free-api-search beta,
+ * `creditsConsumed` 0) and an unreadable balance (`null`) never stop paging.
+ */
+function searchCreditsExhausted(pagination: IDataObject | undefined): boolean {
+	if (!pagination) return false;
+	const consumed = pagination.creditsConsumed;
+	const remaining = pagination.creditsRemaining;
+	return (
+		typeof consumed === 'number' &&
+		consumed > 0 &&
+		typeof remaining === 'number' &&
+		remaining <= 0
+	);
+}
+
+/**
  * Auto-paginate through cursor-based MCP search tools (nextToken + limit).
+ * The cursor lives under `pagination.nextToken` in structuredContent; a
+ * top-level `nextToken` is still honored for older servers.
  */
 async function seamlessMcpSearchAll(
 	this: IExecuteFunctions,
@@ -321,8 +341,15 @@ async function seamlessMcpSearchAll(
 		const items = (response.data || []) as IDataObject[];
 		allItems.push(...items);
 
-		nextToken = response.nextToken as string | undefined;
-		hasMore = !!nextToken && (!maxResults || allItems.length < maxResults);
+		const pagination = response.pagination as IDataObject | undefined;
+		nextToken = (response.nextToken ?? pagination?.nextToken) as
+			| string
+			| undefined;
+		hasMore =
+			!!nextToken &&
+			items.length > 0 &&
+			(!maxResults || allItems.length < maxResults) &&
+			!searchCreditsExhausted(pagination);
 	}
 
 	return allItems;
