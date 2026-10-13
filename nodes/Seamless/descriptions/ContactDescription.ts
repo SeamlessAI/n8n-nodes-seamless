@@ -135,9 +135,9 @@ const contactFields: INodeProperties[] = [
 		name: 'industry',
 		type: 'string',
 		default: '',
-		placeholder: 'e.g. Software',
+		placeholder: 'e.g. Financial Services, -Staffing and Recruiting',
 		description:
-			'Filter by industry. Comma-separated values to provide multiple.',
+			'Filter by industry label (e.g. Financial Services, -Staffing and Recruiting). Prefix a value with "-" to exclude it. Unknown labels are rejected, with or without the prefix. Comma-separated values to provide multiple (max 5).',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
@@ -333,7 +333,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple. Matched against the company\'s own NAICS code; a company with no NAICS code also matches when its SIC code maps to a requested code.',
+					'Filter by NAICS code, independently of Industry (e.g. 511210, -561310). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple. Matched against the company\'s own NAICS code; a company with no NAICS code also matches when its SIC code maps to a requested code.',
 			},
 			{
 				displayName: 'Industry SIC Codes',
@@ -341,7 +341,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter by SIC code, independently of Industry (e.g. 7372). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+					'Filter by SIC code, independently of Industry (e.g. 7372, -5734). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
 			},
 			{
 				displayName: 'Job Change Day Range',
@@ -482,7 +482,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter to contacts who previously worked at these companies. Names always match on relevance, so aliases and name fragments match too. Comma-separated values to provide multiple.',
+					'Filter to contacts who previously worked at these companies and no longer work there. Names always match on relevance, so aliases and name fragments match too. Comma-separated values to provide multiple.',
 			},
 			{
 				displayName: 'Past Company Only Most Recent Departure',
