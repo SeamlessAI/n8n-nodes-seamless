@@ -22,6 +22,8 @@ import {
 import {
 	activityOperations,
 	activityFields,
+	autopilotOperations,
+	autopilotFields,
 	callOperations,
 	callFields,
 	campaignOperations,
@@ -51,6 +53,12 @@ import {
 	templateOperations,
 	templateFields,
 } from './descriptions';
+import {
+	AUTOPILOT_MAX_COMPANY_RESULTS,
+	AUTOPILOT_MAX_CONTACT_RESULTS,
+	AUTOPILOT_MAX_LIST_IDS,
+	AUTOPILOT_NAME_MAX_LENGTH,
+} from './descriptions/AutopilotDescription';
 import { SEARCH_LOCATIONS_MAX } from './descriptions/searchShared';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -475,6 +483,72 @@ function hasContactSearchFilter(body: IDataObject): boolean {
 	});
 }
 
+/**
+ * Build the `search_contacts` filter args from the Contact Search parameters.
+ * Shared with Autopilot Start, which takes the same filters.
+ */
+function buildContactSearchBody(
+	ctx: IExecuteFunctions,
+	i: number,
+): IDataObject {
+	const body: IDataObject = {};
+
+	setStringArray(
+		body,
+		'companyName',
+		ctx.getNodeParameter('companyName', i, '')
+	);
+	setStringArray(
+		body,
+		'jobTitle',
+		ctx.getNodeParameter('jobTitle', i, '')
+	);
+	setStringArray(
+		body,
+		'companyDomain',
+		ctx.getNodeParameter('companyDomain', i, '')
+	);
+	setStringArray(
+		body,
+		'industry',
+		ctx.getNodeParameter('industry', i, '')
+	);
+	// Node param keeps its `fullname` name for saved workflows; MCP canonical
+	// filter is `fullName` (`fullname` is a deprecated alias, SEAM-43797).
+	setStringArray(
+		body,
+		'fullName',
+		ctx.getNodeParameter('fullname', i, '')
+	);
+
+	const seniority = ctx.getNodeParameter('seniority', i, []) as string[];
+	if (seniority.length) body.seniority = seniority;
+
+	const department = ctx.getNodeParameter(
+		'department',
+		i,
+		[]
+	) as string[];
+	if (department.length) body.department = department;
+
+	const additionalFields = ctx.getNodeParameter(
+		'additionalFields',
+		i,
+		{}
+	) as IDataObject;
+	const cleaned = cleanObj(additionalFields);
+	foldSearchLocations(ctx, body, cleaned, i);
+	for (const key of CONTACT_SEARCH_CSV_KEYS) {
+		if (cleaned[key] !== undefined) {
+			setStringArray(body, key, cleaned[key]);
+			delete cleaned[key];
+		}
+	}
+	foldSearchObjectFilters(body, cleaned);
+	Object.assign(body, cleaned);
+	return body;
+}
+
 async function executeContact(
 	this: IExecuteFunctions,
 	operation: string,
@@ -485,61 +559,7 @@ async function executeContact(
 		const limit = returnAll
 			? undefined
 			: (this.getNodeParameter('limit', i) as number);
-		const body: IDataObject = {};
-
-		setStringArray(
-			body,
-			'companyName',
-			this.getNodeParameter('companyName', i, '')
-		);
-		setStringArray(
-			body,
-			'jobTitle',
-			this.getNodeParameter('jobTitle', i, '')
-		);
-		setStringArray(
-			body,
-			'companyDomain',
-			this.getNodeParameter('companyDomain', i, '')
-		);
-		setStringArray(
-			body,
-			'industry',
-			this.getNodeParameter('industry', i, '')
-		);
-		// Node param keeps its `fullname` name for saved workflows; MCP canonical
-		// filter is `fullName` (`fullname` is a deprecated alias, SEAM-43797).
-		setStringArray(
-			body,
-			'fullName',
-			this.getNodeParameter('fullname', i, '')
-		);
-
-		const seniority = this.getNodeParameter('seniority', i, []) as string[];
-		if (seniority.length) body.seniority = seniority;
-
-		const department = this.getNodeParameter(
-			'department',
-			i,
-			[]
-		) as string[];
-		if (department.length) body.department = department;
-
-		const additionalFields = this.getNodeParameter(
-			'additionalFields',
-			i,
-			{}
-		) as IDataObject;
-		const cleaned = cleanObj(additionalFields);
-		foldSearchLocations(this, body, cleaned, i);
-		for (const key of CONTACT_SEARCH_CSV_KEYS) {
-			if (cleaned[key] !== undefined) {
-				setStringArray(body, key, cleaned[key]);
-				delete cleaned[key];
-			}
-		}
-		foldSearchObjectFilters(body, cleaned);
-		Object.assign(body, cleaned);
+		const body = buildContactSearchBody(this, i);
 
 		// MCP rejects a filterless search_contacts call (SEAM-43652); fail fast with the same contract.
 		const hasSavedSearch =
@@ -683,6 +703,50 @@ const COMPANY_SEARCH_CSV_KEYS = [
 	'industryNaicsCodes',
 ];
 
+/**
+ * Build the `search_companies` filter args from the Company Search parameters.
+ * Shared with Autopilot Start, which takes the same filters.
+ */
+function buildCompanySearchBody(
+	ctx: IExecuteFunctions,
+	i: number,
+): IDataObject {
+	const body: IDataObject = {};
+
+	setStringArray(
+		body,
+		'companyName',
+		ctx.getNodeParameter('companyName', i, '')
+	);
+	setStringArray(
+		body,
+		'companyDomain',
+		ctx.getNodeParameter('companyDomain', i, '')
+	);
+	setStringArray(
+		body,
+		'industry',
+		ctx.getNodeParameter('industry', i, '')
+	);
+
+	const additionalFields = ctx.getNodeParameter(
+		'additionalFields',
+		i,
+		{}
+	) as IDataObject;
+	const cleaned = cleanObj(additionalFields);
+	foldSearchLocations(ctx, body, cleaned, i);
+	for (const key of COMPANY_SEARCH_CSV_KEYS) {
+		if (cleaned[key] !== undefined) {
+			setStringArray(body, key, cleaned[key]);
+			delete cleaned[key];
+		}
+	}
+	foldSearchObjectFilters(body, cleaned);
+	Object.assign(body, cleaned);
+	return body;
+}
+
 async function executeCompany(
 	this: IExecuteFunctions,
 	operation: string,
@@ -693,39 +757,7 @@ async function executeCompany(
 		const limit = returnAll
 			? undefined
 			: (this.getNodeParameter('limit', i) as number);
-		const body: IDataObject = {};
-
-		setStringArray(
-			body,
-			'companyName',
-			this.getNodeParameter('companyName', i, '')
-		);
-		setStringArray(
-			body,
-			'companyDomain',
-			this.getNodeParameter('companyDomain', i, '')
-		);
-		setStringArray(
-			body,
-			'industry',
-			this.getNodeParameter('industry', i, '')
-		);
-
-		const additionalFields = this.getNodeParameter(
-			'additionalFields',
-			i,
-			{}
-		) as IDataObject;
-		const cleaned = cleanObj(additionalFields);
-		foldSearchLocations(this, body, cleaned, i);
-		for (const key of COMPANY_SEARCH_CSV_KEYS) {
-			if (cleaned[key] !== undefined) {
-				setStringArray(body, key, cleaned[key]);
-				delete cleaned[key];
-			}
-		}
-		foldSearchObjectFilters(body, cleaned);
-		Object.assign(body, cleaned);
+		const body = buildCompanySearchBody(this, i);
 
 		return seamlessMcpSearchAll.call(
 			this,
@@ -886,6 +918,108 @@ async function executeLocation(
 			body,
 		);
 		return (response.data || response) as IDataObject[];
+	}
+	return {};
+}
+
+// ─── Autopilot ──────────────────────────────────────────────────────────────
+
+/** Paging args the MCP `start_autopilot` schema does not accept. */
+const AUTOPILOT_EXCLUDED_SEARCH_KEYS = ['nextToken', 'page', 'limit'];
+
+async function executeAutopilot(
+	this: IExecuteFunctions,
+	operation: string,
+	i: number
+): Promise<IDataObject | IDataObject[]> {
+	if (operation === 'start') {
+		const type = this.getNodeParameter('type', i) as 'contact' | 'company';
+		const name = String(this.getNodeParameter('name', i) ?? '').trim();
+		const numResultsExpected = this.getNodeParameter(
+			'numResultsExpected',
+			i,
+		) as number;
+		const maxResults =
+			type === 'company'
+				? AUTOPILOT_MAX_COMPANY_RESULTS
+				: AUTOPILOT_MAX_CONTACT_RESULTS;
+
+		if (!name || name.length > AUTOPILOT_NAME_MAX_LENGTH) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Name is required and must be at most ${AUTOPILOT_NAME_MAX_LENGTH} characters (got ${name.length})`,
+				{ itemIndex: i },
+			);
+		}
+		if (
+			!Number.isInteger(numResultsExpected) ||
+			numResultsExpected < 1 ||
+			numResultsExpected > maxResults
+		) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Results to Research must be a whole number between 1 and ${maxResults.toLocaleString('en-US')} for ${type} Autopilots (got ${numResultsExpected})`,
+				{ itemIndex: i },
+			);
+		}
+
+		// Same filters as the matching Search operation; the server rejects
+		// filters that belong to the other type, so only read this type's fields.
+		const filters =
+			type === 'company'
+				? buildCompanySearchBody(this, i)
+				: buildContactSearchBody(this, i);
+		for (const key of AUTOPILOT_EXCLUDED_SEARCH_KEYS) {
+			delete filters[key];
+		}
+
+		const body: IDataObject = { ...filters, type, name, numResultsExpected };
+
+		const listIds = csvToNumberArray(this.getNodeParameter('listIds', i, ''));
+		if (listIds.length > AUTOPILOT_MAX_LIST_IDS) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`List IDs accepts at most ${AUTOPILOT_MAX_LIST_IDS} IDs (got ${listIds.length})`,
+				{ itemIndex: i },
+			);
+		}
+		if (listIds.length) body.listIds = listIds;
+
+		const autoImportToCrm = this.getNodeParameter(
+			'autoImportToCrm',
+			i,
+			false,
+		) as boolean;
+		if (autoImportToCrm) body.autoImportToCrm = true;
+
+		return seamlessMcpCall.call(this, 'start_autopilot', body);
+	}
+
+	const automatedSearchId = this.getNodeParameter(
+		'automatedSearchId',
+		i,
+	) as number;
+
+	if (operation === 'getStatus') {
+		return seamlessMcpCall.call(this, 'get_autopilot_status', {
+			automatedSearchId,
+		});
+	}
+	if (operation === 'getResultsUrl') {
+		const fileVersion = this.getNodeParameter(
+			'fileVersion',
+			i,
+			'clean',
+		) as string;
+		return seamlessMcpCall.call(this, 'get_autopilot_results_url', {
+			automatedSearchId,
+			fileVersion,
+		});
+	}
+	if (operation === 'cancel') {
+		return seamlessMcpCall.call(this, 'cancel_autopilot', {
+			automatedSearchId,
+		});
 	}
 	return {};
 }
@@ -1632,6 +1766,7 @@ class Seamless implements INodeType {
 				default: 'contact',
 				options: [
 					{ name: 'Activity', value: 'activity' },
+					{ name: 'Autopilot', value: 'autopilot' },
 					{ name: 'Call', value: 'call' },
 					{ name: 'Campaign', value: 'campaign' },
 					{ name: 'Campaign Step', value: 'campaignStep' },
@@ -1653,6 +1788,7 @@ class Seamless implements INodeType {
 			...companyOperations,
 			...listOperations,
 			...locationOperations,
+			...autopilotOperations,
 			...creditsOperations,
 			...campaignOperations,
 			...campaignStepOperations,
@@ -1669,6 +1805,7 @@ class Seamless implements INodeType {
 			...companyFields,
 			...listFields,
 			...locationFields,
+			...autopilotFields,
 			...creditsFields,
 			...campaignFields,
 			...campaignStepFields,
@@ -1831,6 +1968,12 @@ class Seamless implements INodeType {
 					responseData = await executeList.call(this, operation, i);
 				} else if (resource === 'location') {
 					responseData = await executeLocation.call(
+						this,
+						operation,
+						i
+					);
+				} else if (resource === 'autopilot') {
+					responseData = await executeAutopilot.call(
 						this,
 						operation,
 						i
