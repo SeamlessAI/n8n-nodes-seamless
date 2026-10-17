@@ -29,6 +29,12 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 	location: {
 		lookup: 'lookup_locations',
 	},
+	autopilot: {
+		start: 'start_autopilot',
+		getStatus: 'get_autopilot_status',
+		getResultsUrl: 'get_autopilot_results_url',
+		cancel: 'cancel_autopilot',
+	},
 	credits: {
 		getCredits: 'get_credits',
 	},

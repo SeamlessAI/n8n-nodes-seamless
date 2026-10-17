@@ -22,6 +22,8 @@ import {
 import {
 	activityOperations,
 	activityFields,
+	autopilotOperations,
+	autopilotFields,
 	callOperations,
 	callFields,
 	campaignOperations,
@@ -51,6 +53,12 @@ import {
 	templateOperations,
 	templateFields,
 } from './descriptions';
+import {
+	AUTOPILOT_MAX_COMPANY_RESULTS,
+	AUTOPILOT_MAX_CONTACT_RESULTS,
+	AUTOPILOT_MAX_LIST_IDS,
+	AUTOPILOT_NAME_MAX_LENGTH,
+} from './descriptions/AutopilotDescription';
 import { SEARCH_LOCATIONS_MAX } from './descriptions/searchShared';
 
 // ─── Helpers ────────────────────────────────────────────────────────────────
@@ -277,6 +285,50 @@ function dropZeroIds(obj: IDataObject, keys: string[]): void {
 	}
 }
 
+const CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH = 10_000;
+
+/** Trimmed aiPrompt, or undefined when blank (server treats blank as absent). */
+function normalizeAiPrompt(raw: unknown): string | undefined {
+	if (typeof raw !== 'string') return undefined;
+	const prompt = raw.trim();
+	return prompt ? prompt : undefined;
+}
+
+/**
+ * MCP rejects a step whose content comes from more than one of templateId,
+ * templateData, or aiPrompt. Fail locally with a clearer message.
+ */
+function assertSingleStepContentSource(
+	ctx: IExecuteFunctions,
+	body: IDataObject,
+	itemIndex: number,
+	label = 'Campaign step',
+): void {
+	const sources = [
+		body.templateId !== undefined && 'Template ID',
+		body.templateData !== undefined && 'Template Data',
+		body.aiPrompt !== undefined && 'AI Prompt',
+	].filter(Boolean);
+	if (sources.length > 1) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`${label}: provide exactly one of Template ID, Template Data, or AI Prompt (got ${sources.join(', ')})`,
+			{ itemIndex },
+		);
+	}
+	const prompt = body.aiPrompt;
+	if (
+		typeof prompt === 'string' &&
+		prompt.length > CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH
+	) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`${label}: AI Prompt must be at most ${CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH} characters (got ${prompt.length})`,
+			{ itemIndex },
+		);
+	}
+}
+
 function buildCampaignStepPayload(fields: IDataObject): IDataObject {
 	const body: IDataObject = {
 		type: fields.type,
@@ -289,18 +341,29 @@ function buildCampaignStepPayload(fields: IDataObject): IDataObject {
 	delete optional.dueDay;
 	const templateData = unwrapTemplateData(optional.templateData);
 	delete optional.templateData;
+	const aiPrompt = normalizeAiPrompt(optional.aiPrompt);
+	delete optional.aiPrompt;
 	dropZeroIds(optional, ['templateId']);
 	Object.assign(body, optional);
 	if (templateData) body.templateData = templateData;
+	if (aiPrompt) body.aiPrompt = aiPrompt;
 	return body;
 }
 
-function parseInlineCampaignSteps(raw: unknown): IDataObject[] {
+function parseInlineCampaignSteps(
+	ctx: IExecuteFunctions,
+	raw: unknown,
+	itemIndex: number,
+): IDataObject[] {
 	if (!raw || typeof raw !== 'object') return [];
 	const collection = raw as IDataObject;
 	const steps = collection.step;
 	if (!Array.isArray(steps) || !steps.length) return [];
-	return steps.map((step) => buildCampaignStepPayload(step as IDataObject));
+	return steps.map((step, idx) => {
+		const body = buildCampaignStepPayload(step as IDataObject);
+		assertSingleStepContentSource(ctx, body, itemIndex, `Step ${idx + 1}`);
+		return body;
+	});
 }
 
 // ─── Contact ────────────────────────────────────────────────────────────────
@@ -420,6 +483,72 @@ function hasContactSearchFilter(body: IDataObject): boolean {
 	});
 }
 
+/**
+ * Build the `search_contacts` filter args from the Contact Search parameters.
+ * Shared with Autopilot Start, which takes the same filters.
+ */
+function buildContactSearchBody(
+	ctx: IExecuteFunctions,
+	i: number,
+): IDataObject {
+	const body: IDataObject = {};
+
+	setStringArray(
+		body,
+		'companyName',
+		ctx.getNodeParameter('companyName', i, '')
+	);
+	setStringArray(
+		body,
+		'jobTitle',
+		ctx.getNodeParameter('jobTitle', i, '')
+	);
+	setStringArray(
+		body,
+		'companyDomain',
+		ctx.getNodeParameter('companyDomain', i, '')
+	);
+	setStringArray(
+		body,
+		'industry',
+		ctx.getNodeParameter('industry', i, '')
+	);
+	// Node param keeps its `fullname` name for saved workflows; MCP canonical
+	// filter is `fullName` (`fullname` is a deprecated alias, SEAM-43797).
+	setStringArray(
+		body,
+		'fullName',
+		ctx.getNodeParameter('fullname', i, '')
+	);
+
+	const seniority = ctx.getNodeParameter('seniority', i, []) as string[];
+	if (seniority.length) body.seniority = seniority;
+
+	const department = ctx.getNodeParameter(
+		'department',
+		i,
+		[]
+	) as string[];
+	if (department.length) body.department = department;
+
+	const additionalFields = ctx.getNodeParameter(
+		'additionalFields',
+		i,
+		{}
+	) as IDataObject;
+	const cleaned = cleanObj(additionalFields);
+	foldSearchLocations(ctx, body, cleaned, i);
+	for (const key of CONTACT_SEARCH_CSV_KEYS) {
+		if (cleaned[key] !== undefined) {
+			setStringArray(body, key, cleaned[key]);
+			delete cleaned[key];
+		}
+	}
+	foldSearchObjectFilters(body, cleaned);
+	Object.assign(body, cleaned);
+	return body;
+}
+
 async function executeContact(
 	this: IExecuteFunctions,
 	operation: string,
@@ -430,61 +559,7 @@ async function executeContact(
 		const limit = returnAll
 			? undefined
 			: (this.getNodeParameter('limit', i) as number);
-		const body: IDataObject = {};
-
-		setStringArray(
-			body,
-			'companyName',
-			this.getNodeParameter('companyName', i, '')
-		);
-		setStringArray(
-			body,
-			'jobTitle',
-			this.getNodeParameter('jobTitle', i, '')
-		);
-		setStringArray(
-			body,
-			'companyDomain',
-			this.getNodeParameter('companyDomain', i, '')
-		);
-		setStringArray(
-			body,
-			'industry',
-			this.getNodeParameter('industry', i, '')
-		);
-		// Node param keeps its `fullname` name for saved workflows; MCP canonical
-		// filter is `fullName` (`fullname` is a deprecated alias, SEAM-43797).
-		setStringArray(
-			body,
-			'fullName',
-			this.getNodeParameter('fullname', i, '')
-		);
-
-		const seniority = this.getNodeParameter('seniority', i, []) as string[];
-		if (seniority.length) body.seniority = seniority;
-
-		const department = this.getNodeParameter(
-			'department',
-			i,
-			[]
-		) as string[];
-		if (department.length) body.department = department;
-
-		const additionalFields = this.getNodeParameter(
-			'additionalFields',
-			i,
-			{}
-		) as IDataObject;
-		const cleaned = cleanObj(additionalFields);
-		foldSearchLocations(this, body, cleaned, i);
-		for (const key of CONTACT_SEARCH_CSV_KEYS) {
-			if (cleaned[key] !== undefined) {
-				setStringArray(body, key, cleaned[key]);
-				delete cleaned[key];
-			}
-		}
-		foldSearchObjectFilters(body, cleaned);
-		Object.assign(body, cleaned);
+		const body = buildContactSearchBody(this, i);
 
 		// MCP rejects a filterless search_contacts call (SEAM-43652); fail fast with the same contract.
 		const hasSavedSearch =
@@ -628,6 +703,50 @@ const COMPANY_SEARCH_CSV_KEYS = [
 	'industryNaicsCodes',
 ];
 
+/**
+ * Build the `search_companies` filter args from the Company Search parameters.
+ * Shared with Autopilot Start, which takes the same filters.
+ */
+function buildCompanySearchBody(
+	ctx: IExecuteFunctions,
+	i: number,
+): IDataObject {
+	const body: IDataObject = {};
+
+	setStringArray(
+		body,
+		'companyName',
+		ctx.getNodeParameter('companyName', i, '')
+	);
+	setStringArray(
+		body,
+		'companyDomain',
+		ctx.getNodeParameter('companyDomain', i, '')
+	);
+	setStringArray(
+		body,
+		'industry',
+		ctx.getNodeParameter('industry', i, '')
+	);
+
+	const additionalFields = ctx.getNodeParameter(
+		'additionalFields',
+		i,
+		{}
+	) as IDataObject;
+	const cleaned = cleanObj(additionalFields);
+	foldSearchLocations(ctx, body, cleaned, i);
+	for (const key of COMPANY_SEARCH_CSV_KEYS) {
+		if (cleaned[key] !== undefined) {
+			setStringArray(body, key, cleaned[key]);
+			delete cleaned[key];
+		}
+	}
+	foldSearchObjectFilters(body, cleaned);
+	Object.assign(body, cleaned);
+	return body;
+}
+
 async function executeCompany(
 	this: IExecuteFunctions,
 	operation: string,
@@ -638,39 +757,7 @@ async function executeCompany(
 		const limit = returnAll
 			? undefined
 			: (this.getNodeParameter('limit', i) as number);
-		const body: IDataObject = {};
-
-		setStringArray(
-			body,
-			'companyName',
-			this.getNodeParameter('companyName', i, '')
-		);
-		setStringArray(
-			body,
-			'companyDomain',
-			this.getNodeParameter('companyDomain', i, '')
-		);
-		setStringArray(
-			body,
-			'industry',
-			this.getNodeParameter('industry', i, '')
-		);
-
-		const additionalFields = this.getNodeParameter(
-			'additionalFields',
-			i,
-			{}
-		) as IDataObject;
-		const cleaned = cleanObj(additionalFields);
-		foldSearchLocations(this, body, cleaned, i);
-		for (const key of COMPANY_SEARCH_CSV_KEYS) {
-			if (cleaned[key] !== undefined) {
-				setStringArray(body, key, cleaned[key]);
-				delete cleaned[key];
-			}
-		}
-		foldSearchObjectFilters(body, cleaned);
-		Object.assign(body, cleaned);
+		const body = buildCompanySearchBody(this, i);
 
 		return seamlessMcpSearchAll.call(
 			this,
@@ -835,6 +922,108 @@ async function executeLocation(
 	return {};
 }
 
+// ─── Autopilot ──────────────────────────────────────────────────────────────
+
+/** Paging args the MCP `start_autopilot` schema does not accept. */
+const AUTOPILOT_EXCLUDED_SEARCH_KEYS = ['nextToken', 'page', 'limit'];
+
+async function executeAutopilot(
+	this: IExecuteFunctions,
+	operation: string,
+	i: number
+): Promise<IDataObject | IDataObject[]> {
+	if (operation === 'start') {
+		const type = this.getNodeParameter('type', i) as 'contact' | 'company';
+		const name = String(this.getNodeParameter('name', i) ?? '').trim();
+		const numResultsExpected = this.getNodeParameter(
+			'numResultsExpected',
+			i,
+		) as number;
+		const maxResults =
+			type === 'company'
+				? AUTOPILOT_MAX_COMPANY_RESULTS
+				: AUTOPILOT_MAX_CONTACT_RESULTS;
+
+		if (!name || name.length > AUTOPILOT_NAME_MAX_LENGTH) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Name is required and must be at most ${AUTOPILOT_NAME_MAX_LENGTH} characters (got ${name.length})`,
+				{ itemIndex: i },
+			);
+		}
+		if (
+			!Number.isInteger(numResultsExpected) ||
+			numResultsExpected < 1 ||
+			numResultsExpected > maxResults
+		) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Results to Research must be a whole number between 1 and ${maxResults.toLocaleString('en-US')} for ${type} Autopilots (got ${numResultsExpected})`,
+				{ itemIndex: i },
+			);
+		}
+
+		// Same filters as the matching Search operation; the server rejects
+		// filters that belong to the other type, so only read this type's fields.
+		const filters =
+			type === 'company'
+				? buildCompanySearchBody(this, i)
+				: buildContactSearchBody(this, i);
+		for (const key of AUTOPILOT_EXCLUDED_SEARCH_KEYS) {
+			delete filters[key];
+		}
+
+		const body: IDataObject = { ...filters, type, name, numResultsExpected };
+
+		const listIds = csvToNumberArray(this.getNodeParameter('listIds', i, ''));
+		if (listIds.length > AUTOPILOT_MAX_LIST_IDS) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`List IDs accepts at most ${AUTOPILOT_MAX_LIST_IDS} IDs (got ${listIds.length})`,
+				{ itemIndex: i },
+			);
+		}
+		if (listIds.length) body.listIds = listIds;
+
+		const autoImportToCrm = this.getNodeParameter(
+			'autoImportToCrm',
+			i,
+			false,
+		) as boolean;
+		if (autoImportToCrm) body.autoImportToCrm = true;
+
+		return seamlessMcpCall.call(this, 'start_autopilot', body);
+	}
+
+	const automatedSearchId = this.getNodeParameter(
+		'automatedSearchId',
+		i,
+	) as number;
+
+	if (operation === 'getStatus') {
+		return seamlessMcpCall.call(this, 'get_autopilot_status', {
+			automatedSearchId,
+		});
+	}
+	if (operation === 'getResultsUrl') {
+		const fileVersion = this.getNodeParameter(
+			'fileVersion',
+			i,
+			'clean',
+		) as string;
+		return seamlessMcpCall.call(this, 'get_autopilot_results_url', {
+			automatedSearchId,
+			fileVersion,
+		});
+	}
+	if (operation === 'cancel') {
+		return seamlessMcpCall.call(this, 'cancel_autopilot', {
+			automatedSearchId,
+		});
+	}
+	return {};
+}
+
 // ─── Campaign ───────────────────────────────────────────────────────────────
 
 async function executeCampaign(
@@ -859,7 +1048,9 @@ async function executeCampaign(
 			if (ids.length) body.contactIds = ids;
 		}
 		const steps = parseInlineCampaignSteps(
+			this,
 			this.getNodeParameter('steps', i, {}),
+			i,
 		);
 		if (steps.length) body.steps = steps;
 		return seamlessMcpCall.call(this, 'create_campaign', body);
@@ -1002,6 +1193,7 @@ async function executeCampaignStep(
 			dueDay: this.getNodeParameter('dueDay', i) as number,
 			...(this.getNodeParameter('additionalFields', i, {}) as IDataObject),
 		});
+		assertSingleStepContentSource(this, body, i);
 		return seamlessMcpCall.call(this, 'create_campaign_step', {
 			...campaignTarget,
 			...body,
@@ -1025,19 +1217,24 @@ async function executeCampaignStep(
 		const cleaned = cleanObj(updateFields);
 		const templateData = unwrapTemplateData(cleaned.templateData);
 		delete cleaned.templateData;
+		const aiPrompt = normalizeAiPrompt(cleaned.aiPrompt);
+		delete cleaned.aiPrompt;
 		dropZeroIds(cleaned, ['templateId', 'stepNumber']);
 		const body: IDataObject = { campaignStepId: stepId, dueDay, ...cleaned };
 		if (templateData) body.templateData = templateData;
+		if (aiPrompt) body.aiPrompt = aiPrompt;
+		assertSingleStepContentSource(this, body, i);
 		return seamlessMcpCall.call(this, 'update_campaign_step', body);
 	}
 	if (operation === 'delete') {
 		const stepId = this.getNodeParameter('stepId', i) as number;
-		await seamlessMcpCall.call(
+		const response = await seamlessMcpCall.call(
 			this,
 			'delete_campaign_step',
 			{ campaignStepId: stepId, ...campaignTarget },
 		);
-		return { deleted: true };
+		// MCP returns { deletedStep, steps } (remaining steps renumbered)
+		return { deleted: true, ...response };
 	}
 	if (operation === 'executeAction') {
 		const stepId = this.getNodeParameter('stepId', i) as number;
@@ -1151,12 +1348,11 @@ async function executeTemplate(
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'templateId', i);
-		const type = this.getNodeParameter('type', i, 'email') as string;
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const result = await seamlessMcpCall.call(
 			this,
 			'list_templates',
-			{ templateId: id, type },
+			withTemplateType.call(this, { templateId: id }, i),
 		);
 		return simplifyResults(result, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
@@ -1187,26 +1383,39 @@ async function executeTemplate(
 	}
 	if (operation === 'update') {
 		const id = extractRlId(this, 'templateId', i);
-		const type = this.getNodeParameter('type', i, 'email') as string;
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
 			{},
 		) as IDataObject;
-		const body: IDataObject = { templateId: id, type, ...cleanObj(updateFields) };
+		// `type` is omitted unless set in Update Fields so the stored type survives content-only updates
+		const body: IDataObject = { templateId: id, ...cleanObj(updateFields) };
 		return seamlessMcpCall.call(this, 'update_template', body);
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'templateId', i);
-		const type = this.getNodeParameter('type', i, 'email') as string;
 		await seamlessMcpCall.call(
 			this,
 			'delete_template',
-			{ templateId: id, type },
+			withTemplateType.call(this, { templateId: id }, i),
 		);
 		return { deleted: true };
 	}
 	return {};
+}
+
+/**
+ * Adds the optional `type` filter for template lookups by ID.
+ * An empty value ("All") omits it so the MCP tool matches every type.
+ */
+function withTemplateType(
+	this: IExecuteFunctions,
+	args: IDataObject,
+	i: number,
+): IDataObject {
+	const type = this.getNodeParameter('type', i, '') as string;
+	if (type) args.type = type;
+	return args;
 }
 
 // ─── Email ──────────────────────────────────────────────────────────────────
@@ -1569,6 +1778,7 @@ class Seamless implements INodeType {
 				default: 'contact',
 				options: [
 					{ name: 'Activity', value: 'activity' },
+					{ name: 'Autopilot', value: 'autopilot' },
 					{ name: 'Call', value: 'call' },
 					{ name: 'Campaign', value: 'campaign' },
 					{ name: 'Campaign Step', value: 'campaignStep' },
@@ -1590,6 +1800,7 @@ class Seamless implements INodeType {
 			...companyOperations,
 			...listOperations,
 			...locationOperations,
+			...autopilotOperations,
 			...creditsOperations,
 			...campaignOperations,
 			...campaignStepOperations,
@@ -1606,6 +1817,7 @@ class Seamless implements INodeType {
 			...companyFields,
 			...listFields,
 			...locationFields,
+			...autopilotFields,
 			...creditsFields,
 			...campaignFields,
 			...campaignStepFields,
@@ -1768,6 +1980,12 @@ class Seamless implements INodeType {
 					responseData = await executeList.call(this, operation, i);
 				} else if (resource === 'location') {
 					responseData = await executeLocation.call(
+						this,
+						operation,
+						i
+					);
+				} else if (resource === 'autopilot') {
+					responseData = await executeAutopilot.call(
 						this,
 						operation,
 						i
