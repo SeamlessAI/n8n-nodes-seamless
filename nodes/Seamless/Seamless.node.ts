@@ -1348,12 +1348,11 @@ async function executeTemplate(
 	}
 	if (operation === 'get') {
 		const id = extractRlId(this, 'templateId', i);
-		const type = this.getNodeParameter('type', i, 'email') as string;
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
 		const result = await seamlessMcpCall.call(
 			this,
 			'list_templates',
-			{ templateId: id, type },
+			withTemplateType.call(this, { templateId: id }, i),
 		);
 		return simplifyResults(result, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject;
 	}
@@ -1384,26 +1383,39 @@ async function executeTemplate(
 	}
 	if (operation === 'update') {
 		const id = extractRlId(this, 'templateId', i);
-		const type = this.getNodeParameter('type', i, 'email') as string;
 		const updateFields = this.getNodeParameter(
 			'updateFields',
 			i,
 			{},
 		) as IDataObject;
-		const body: IDataObject = { templateId: id, type, ...cleanObj(updateFields) };
+		// `type` is omitted unless set in Update Fields so the stored type survives content-only updates
+		const body: IDataObject = { templateId: id, ...cleanObj(updateFields) };
 		return seamlessMcpCall.call(this, 'update_template', body);
 	}
 	if (operation === 'delete') {
 		const id = extractRlId(this, 'templateId', i);
-		const type = this.getNodeParameter('type', i, 'email') as string;
 		await seamlessMcpCall.call(
 			this,
 			'delete_template',
-			{ templateId: id, type },
+			withTemplateType.call(this, { templateId: id }, i),
 		);
 		return { deleted: true };
 	}
 	return {};
+}
+
+/**
+ * Adds the optional `type` filter for template lookups by ID.
+ * An empty value ("All") omits it so the MCP tool matches every type.
+ */
+function withTemplateType(
+	this: IExecuteFunctions,
+	args: IDataObject,
+	i: number,
+): IDataObject {
+	const type = this.getNodeParameter('type', i, '') as string;
+	if (type) args.type = type;
+	return args;
 }
 
 // ─── Email ──────────────────────────────────────────────────────────────────
