@@ -141,7 +141,7 @@ const templateFields: INodeProperties[] = [
 				type: 'options',
 				default: 'static',
 				description:
-					'Content category: "static" for standard templates, "ai_prompt" for AI-generated',
+					'Content category: "static" for standard templates with merge tags, "ai_prompt" for a prompt the AI runs per contact (plain instructions, no merge tags or variables in the body)',
 				options: [
 					{ name: 'Static', value: 'static' },
 					{ name: 'AI Prompt', value: 'ai_prompt' },
@@ -199,6 +199,8 @@ const templateFields: INodeProperties[] = [
 				name: 'contentCategory',
 				type: 'options',
 				default: 'static',
+				description:
+					'Content category: "static" for standard templates with merge tags, "ai_prompt" for a prompt the AI runs per contact (plain instructions, no merge tags or variables in the body)',
 				options: [
 					{ name: 'Static', value: 'static' },
 					{ name: 'AI Prompt', value: 'ai_prompt' },

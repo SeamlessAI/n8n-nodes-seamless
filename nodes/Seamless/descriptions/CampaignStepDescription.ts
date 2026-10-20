@@ -20,7 +20,7 @@ const campaignStepOperations: INodeProperties[] = [
 				value: 'create',
 				action: 'Create campaign step',
 				description:
-					'Add a new step to an existing campaign. For email steps, provide exactly one of Template ID, Template Data (static content with merge tags), or AI Prompt (AI writes personalized content per contact when the step runs); automatic email steps are rejected without one.',
+					'Add a new step to an existing campaign. For email steps, provide exactly one of Template ID, Template Data (static content with merge tags), or AI Prompt (plain instructions with no merge tags; the AI writes personalized content per contact when the step runs); automatic email steps are rejected without one.',
 			},
 			{
 				name: 'Delete',
@@ -46,7 +46,7 @@ const campaignStepOperations: INodeProperties[] = [
 				value: 'update',
 				action: 'Update campaign step',
 				description:
-					'Update a campaign step\'s name, delay, content, or position. Content can be switched to a saved template (Template ID), static inline content (Template Data), or an AI prompt (AI Prompt) — provide exactly one.',
+					'Update a campaign step\'s name, delay, content, or position. Content can be switched to a saved template (Template ID), static inline content (Template Data), or an AI prompt (AI Prompt; plain instructions with no merge tags) — provide exactly one.',
 			},
 		],
 		default: 'getMany',

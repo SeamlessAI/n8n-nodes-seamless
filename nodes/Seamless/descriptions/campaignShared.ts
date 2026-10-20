@@ -53,7 +53,7 @@ const campaignStepAiPromptField: INodeProperties = {
 	default: '',
 	typeOptions: { rows: 5 },
 	description:
-		'Plain-text instructions (max 10,000 characters) the AI runs for EACH contact when the step executes, producing unique content per contact instead of a fixed template. Describe the goal, value proposition, tone, call to action and length; do not write the message itself and do not include HTML. Curly-brace merge tags like {first_name}, {company} are resolved before the AI runs, and the AI also receives the contact\'s full profile. For email steps the AI writes both the subject and the body. Cannot be combined with Template ID or Template Data. Each per-contact generation consumes AI credits.',
+		'Plain-text instructions (max 10,000 characters) the AI runs for EACH contact when the step executes, producing unique content per contact instead of a fixed template. Describe the goal, value proposition, tone, call to action and length; do not write the message itself and do not include HTML. Do not include merge tags or variables such as {first_name} or {company} — the AI receives the contact\'s full profile and personalizes from it; say "address them by first name" rather than using a tag. For email steps the AI writes both the subject and the body. Cannot be combined with Template ID or Template Data. Each per-contact generation consumes AI credits.',
 };
 
 const campaignStepTemplateDataField: INodeProperties = {
@@ -185,7 +185,7 @@ export const campaignCreateStepsField: INodeProperties = {
 	placeholder: 'Add Step',
 	default: {},
 	description:
-		'Campaign steps to create inline (preferred over separate Create Campaign Step calls). Processed sequentially in order. Each step takes its content from exactly one of Template ID (saved template), Template Data (static template with merge tags), or AI Prompt (AI writes personalized content per contact when the step runs).',
+		'Campaign steps to create inline (preferred over separate Create Campaign Step calls). Processed sequentially in order. Each step takes its content from exactly one of Template ID (saved template), Template Data (static template with merge tags), or AI Prompt (plain instructions with no merge tags; the AI writes personalized content per contact when the step runs).',
 	displayOptions: {
 		show: { resource: ['campaign'], operation: ['create'] },
 	},
