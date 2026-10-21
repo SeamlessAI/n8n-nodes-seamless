@@ -2,6 +2,8 @@ import { type INodeProperties } from 'n8n-workflow';
 
 import {
 	campaignCreateStepsField,
+	campaignDailySendLimitsField,
+	campaignDailyTaskLimitsField,
 	campaignResourceLocatorModes,
 } from './campaignShared';
 
@@ -82,7 +84,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Update',
 				value: 'update',
 				action: 'Update campaign',
-				description: 'Update campaign properties',
+				description:
+					'Update a campaign\'s name, visibility, linked email accounts, per-account daily send limits, or per-day task limits. Send and task limits can be changed in any campaign state and take effect at once (an active campaign moves contacts between active and pending to fit). Email accounts can be added in any state, but removing one from an active campaign fails (422 campaignActive): pause the campaign first, then resume it. Returns the updated campaign with its dailySendLimits and dailyTaskLimits.',
 			},
 		],
 		default: 'getMany',
@@ -146,6 +149,12 @@ const campaignFields: INodeProperties[] = [
 				description:
 					'Comma-separated saved contact IDs (from Get My Contacts) to add inline. Max 500. Preferred over a separate Add Contacts call when building a new campaign.',
 			},
+			campaignDailySendLimitsField(
+				"This campaign's daily send limit on each linked email account (each Email Account ID must also be in Email Account IDs). Accounts not listed keep the default allocation. Requires the campaign send limits feature; otherwise the request is rejected.",
+			),
+			campaignDailyTaskLimitsField(
+				'Per-day task limits for the inline Steps: how many contacts may become due on each cadence day. Due Day must match a step and Daily Task Limit must be at least the number of steps on that day, otherwise the request fails before anything is created. Days not listed receive the default for organizations on campaign send limits and stay unlimited for everyone else. Requires the campaign send limits feature.',
+			),
 			{
 				displayName: 'Email Account IDs',
 				name: 'emailAccountIds',
@@ -167,12 +176,19 @@ const campaignFields: INodeProperties[] = [
 			show: { resource: ['campaign'], operation: ['update'] },
 		},
 		options: [
+			campaignDailySendLimitsField(
+				"This campaign's daily send limit on linked email accounts. Accounts not listed keep their current limit; unlinked accounts are rejected (link them via Email Account IDs first). Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
+			),
+			campaignDailyTaskLimitsField(
+				"Per-day task limits: how many contacts may become due on each cadence day. Due Day must match a step and Daily Task Limit must be at least the number of steps on that day; a day with an email step cannot exceed the campaign's dailySendCapacity. Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
+			),
 			{
 				displayName: 'Email Account IDs',
 				name: 'emailAccountIds',
 				type: 'string',
 				default: '',
-				description: 'Comma-separated email account IDs to link',
+				description:
+					'Comma-separated email account IDs to link for sending. Accounts can be added in any state; removing one from an active campaign fails with 422 campaignActive — pause the campaign first, then resume it.',
 			},
 			{
 				displayName: 'Is Public',

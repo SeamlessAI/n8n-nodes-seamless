@@ -177,6 +177,87 @@ const campaignStepInlineValues: INodeProperties[] = [
 	...campaignStepOptionalFields,
 ];
 
+/** Builds the repeatable `dailyTaskLimits` collection; wording differs between Create and Update. */
+export const campaignDailyTaskLimitsField = (
+	description: string,
+): INodeProperties => ({
+	displayName: 'Daily Task Limits',
+	name: 'dailyTaskLimits',
+	type: 'fixedCollection',
+	typeOptions: { multipleValues: true },
+	placeholder: 'Add Day Limit',
+	default: {},
+	description,
+	options: [
+		{
+			displayName: 'Day Limit',
+			name: 'limit',
+			values: [
+				{
+					displayName: 'Due Day',
+					name: 'dueDay',
+					type: 'number',
+					default: 1,
+					required: true,
+					typeOptions: { minValue: 0 },
+					description: 'Cadence day; must match the Due Day of a step',
+				},
+				{
+					displayName: 'Daily Task Limit',
+					name: 'dailyTaskLimit',
+					type: 'number',
+					default: 1,
+					required: true,
+					typeOptions: { minValue: 1 },
+					description:
+						'Maximum contacts that may become due on that day; must be at least the number of steps due that day. A day cannot be made unlimited from here.',
+				},
+			],
+		},
+	],
+});
+
+/** Builds the repeatable `dailySendLimits` collection; wording differs between Create and Update. */
+export const campaignDailySendLimitsField = (
+	description: string,
+): INodeProperties => ({
+	displayName: 'Daily Send Limits',
+	name: 'dailySendLimits',
+	type: 'fixedCollection',
+	typeOptions: { multipleValues: true },
+	placeholder: 'Add Account Limit',
+	default: {},
+	description,
+	options: [
+		{
+			displayName: 'Account Limit',
+			name: 'limit',
+			values: [
+				{
+					displayName: 'Email Account ID',
+					name: 'emailAccountId',
+					type: 'number',
+					default: 0,
+					required: true,
+					typeOptions: { minValue: 1 },
+					description:
+						'Linked email account ID (see Email Account → Get Many)',
+				},
+				{
+					displayName: 'Daily Send Limit',
+					name: 'dailySendLimit',
+					type: 'number',
+					default: 0,
+					required: true,
+					typeOptions: { minValue: 0 },
+					description:
+						"This campaign's daily send limit on the account; 0 stops sending from it",
+				},
+			],
+		},
+	],
+});
+
 export const campaignCreateStepsField: INodeProperties = {
 	displayName: 'Steps',
 	name: 'steps',

@@ -366,6 +366,122 @@ function parseInlineCampaignSteps(
 	});
 }
 
+/** Rows of a repeatable fixedCollection (`{ limit: [{...}] }`), or []. */
+function fixedCollectionRows(raw: unknown, key: string): IDataObject[] {
+	if (!raw || typeof raw !== 'object') return [];
+	const rows = (raw as IDataObject)[key];
+	return Array.isArray(rows) ? (rows as IDataObject[]) : [];
+}
+
+function assertNonNegativeInt(
+	ctx: IExecuteFunctions,
+	value: unknown,
+	min: number,
+	label: string,
+	itemIndex: number,
+): number {
+	const n = Number(value);
+	if (!Number.isInteger(n) || n < min) {
+		throw new NodeOperationError(
+			ctx.getNode(),
+			`${label} must be a whole number of at least ${min} (got ${String(value)})`,
+			{ itemIndex },
+		);
+	}
+	return n;
+}
+
+/**
+ * `dailyTaskLimits` rows for create/update_campaign. When inline `steps` are
+ * known (Create), mirror the server's pre-write check: each dueDay must match
+ * a step and the limit must cover every step due that day.
+ */
+function parseDailyTaskLimits(
+	ctx: IExecuteFunctions,
+	raw: unknown,
+	itemIndex: number,
+	steps?: IDataObject[],
+): IDataObject[] {
+	const rows = fixedCollectionRows(raw, 'limit');
+	if (!rows.length) return [];
+	const stepsPerDay = (steps ?? []).reduce<Record<number, number>>(
+		(acc, step) => {
+			const day = Number(step.dueDay);
+			acc[day] = (acc[day] ?? 0) + 1;
+			return acc;
+		},
+		{},
+	);
+	return rows.map((row, idx) => {
+		const label = `Daily Task Limit ${idx + 1}`;
+		const dueDay = assertNonNegativeInt(ctx, row.dueDay, 0, `${label}: Due Day`, itemIndex);
+		const dailyTaskLimit = assertNonNegativeInt(
+			ctx,
+			row.dailyTaskLimit,
+			1,
+			`${label}: Daily Task Limit`,
+			itemIndex,
+		);
+		if (steps?.length) {
+			const stepCount = stepsPerDay[dueDay];
+			if (!stepCount) {
+				throw new NodeOperationError(
+					ctx.getNode(),
+					`${label}: Due Day ${dueDay} does not match any inline step`,
+					{ itemIndex },
+				);
+			}
+			if (dailyTaskLimit < stepCount) {
+				throw new NodeOperationError(
+					ctx.getNode(),
+					`${label}: Daily Task Limit ${dailyTaskLimit} is below the ${stepCount} step(s) due on day ${dueDay}`,
+					{ itemIndex },
+				);
+			}
+		}
+		return { dueDay, dailyTaskLimit };
+	});
+}
+
+/**
+ * `dailySendLimits` rows for create/update_campaign. When `emailAccountIds`
+ * are given in the same call (Create), every account must be among them.
+ */
+function parseDailySendLimits(
+	ctx: IExecuteFunctions,
+	raw: unknown,
+	itemIndex: number,
+	emailAccountIds?: number[],
+): IDataObject[] {
+	const rows = fixedCollectionRows(raw, 'limit');
+	if (!rows.length) return [];
+	return rows.map((row, idx) => {
+		const label = `Daily Send Limit ${idx + 1}`;
+		const emailAccountId = assertNonNegativeInt(
+			ctx,
+			row.emailAccountId,
+			1,
+			`${label}: Email Account ID`,
+			itemIndex,
+		);
+		const dailySendLimit = assertNonNegativeInt(
+			ctx,
+			row.dailySendLimit,
+			0,
+			`${label}: Daily Send Limit`,
+			itemIndex,
+		);
+		if (emailAccountIds && !emailAccountIds.includes(emailAccountId)) {
+			throw new NodeOperationError(
+				ctx.getNode(),
+				`${label}: Email Account ID ${emailAccountId} is not in Email Account IDs`,
+				{ itemIndex },
+			);
+		}
+		return { emailAccountId, dailySendLimit };
+	});
+}
+
 // ─── Contact ────────────────────────────────────────────────────────────────
 
 /** Keys on the Contact search `additionalFields` that must be sent as string[]. */
@@ -1053,6 +1169,20 @@ async function executeCampaign(
 			i,
 		);
 		if (steps.length) body.steps = steps;
+		const dailyTaskLimits = parseDailyTaskLimits(
+			this,
+			additionalFields.dailyTaskLimits,
+			i,
+			steps,
+		);
+		if (dailyTaskLimits.length) body.dailyTaskLimits = dailyTaskLimits;
+		const dailySendLimits = parseDailySendLimits(
+			this,
+			additionalFields.dailySendLimits,
+			i,
+			(body.emailAccountIds as number[] | undefined) ?? [],
+		);
+		if (dailySendLimits.length) body.dailySendLimits = dailySendLimits;
 		return seamlessMcpCall.call(this, 'create_campaign', body);
 	}
 	if (operation === 'get') {
@@ -1100,6 +1230,18 @@ async function executeCampaign(
 			const ids = csvToNumberArray(updateFields.emailAccountIds);
 			if (ids.length) body.emailAccountIds = ids;
 		}
+		const dailySendLimits = parseDailySendLimits(
+			this,
+			updateFields.dailySendLimits,
+			i,
+		);
+		if (dailySendLimits.length) body.dailySendLimits = dailySendLimits;
+		const dailyTaskLimits = parseDailyTaskLimits(
+			this,
+			updateFields.dailyTaskLimits,
+			i,
+		);
+		if (dailyTaskLimits.length) body.dailyTaskLimits = dailyTaskLimits;
 		return seamlessMcpCall.call(this, 'update_campaign', body);
 	}
 	if (operation === 'delete') {
