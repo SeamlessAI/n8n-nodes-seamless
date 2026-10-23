@@ -1142,6 +1142,16 @@ async function executeAutopilot(
 
 // ─── Campaign ───────────────────────────────────────────────────────────────
 
+/** Campaign lifecycle operations → per-action MCP tools (SEAM-44642). */
+const CAMPAIGN_ACTION_TOOLS: Record<string, string> = {
+	start: 'start_campaign',
+	pause: 'pause_campaign',
+	resume: 'resume_campaign',
+	complete: 'complete_campaign',
+	archive: 'archive_campaign',
+	unarchive: 'unarchive_campaign',
+};
+
 async function executeCampaign(
 	this: IExecuteFunctions,
 	operation: string,
@@ -1249,14 +1259,31 @@ async function executeCampaign(
 		await seamlessMcpCall.call(this, 'delete_campaign', target);
 		return { deleted: true };
 	}
-	if (operation === 'executeAction') {
+	if (operation in CAMPAIGN_ACTION_TOOLS) {
 		const target = extractCampaignTarget(this, 'campaignId', i);
-		const action = this.getNodeParameter('action', i) as string;
 		return seamlessMcpCall.call(
 			this,
-			'execute_campaign_action',
-			{ ...target, action },
+			CAMPAIGN_ACTION_TOOLS[operation],
+			target,
 		);
+	}
+	if (operation === 'executeAction') {
+		// Legacy bundled action; MCP now exposes one tool per action.
+		const target = extractCampaignTarget(this, 'campaignId', i);
+		const action = String(this.getNodeParameter('action', i)).toUpperCase();
+		if (action === 'DELETE') {
+			await seamlessMcpCall.call(this, 'delete_campaign', target);
+			return { deleted: true };
+		}
+		const toolName = CAMPAIGN_ACTION_TOOLS[action.toLowerCase()];
+		if (!toolName) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Unsupported campaign action "${action}". Use one of: ${Object.keys(CAMPAIGN_ACTION_TOOLS).join(', ')}, delete.`,
+				{ itemIndex: i },
+			);
+		}
+		return seamlessMcpCall.call(this, toolName, target);
 	}
 	if (operation === 'clone') {
 		const target = extractCampaignTarget(this, 'campaignId', i);
@@ -1321,6 +1348,13 @@ async function executeCampaign(
 
 // ─── Campaign Step ──────────────────────────────────────────────────────────
 
+/** Campaign step operations → per-action MCP tools (SEAM-44642). */
+const CAMPAIGN_STEP_ACTION_TOOLS: Record<string, string> = {
+	pause: 'pause_campaign_step',
+	resume: 'resume_campaign_step',
+	skip: 'skip_campaign_step',
+};
+
 async function executeCampaignStep(
 	this: IExecuteFunctions,
 	operation: string,
@@ -1378,14 +1412,27 @@ async function executeCampaignStep(
 		// MCP returns { deletedStep, steps } (remaining steps renumbered)
 		return { deleted: true, ...response };
 	}
-	if (operation === 'executeAction') {
+	if (operation in CAMPAIGN_STEP_ACTION_TOOLS) {
 		const stepId = this.getNodeParameter('stepId', i) as number;
-		const action = this.getNodeParameter('action', i) as string;
 		return seamlessMcpCall.call(
 			this,
-			'execute_campaign_step_action',
-			{ campaignStepId: stepId, action },
+			CAMPAIGN_STEP_ACTION_TOOLS[operation],
+			{ campaignStepId: stepId },
 		);
+	}
+	if (operation === 'executeAction') {
+		// Legacy bundled action; MCP now exposes one tool per action.
+		const stepId = this.getNodeParameter('stepId', i) as number;
+		const action = String(this.getNodeParameter('action', i)).toLowerCase();
+		const toolName = CAMPAIGN_STEP_ACTION_TOOLS[action];
+		if (!toolName) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Unsupported campaign step action "${action}". Use one of: ${Object.keys(CAMPAIGN_STEP_ACTION_TOOLS).join(', ')}.`,
+				{ itemIndex: i },
+			);
+		}
+		return seamlessMcpCall.call(this, toolName, { campaignStepId: stepId });
 	}
 	return {};
 }
@@ -1678,6 +1725,16 @@ async function executeEmail(
 
 // ─── Task ───────────────────────────────────────────────────────────────────
 
+/** Task lifecycle operations → per-action MCP tools (SEAM-44642). */
+const TASK_ACTION_TOOLS: Record<string, string> = {
+	start: 'start_task',
+	pause: 'pause_task',
+	unpause: 'unpause_task',
+	complete: 'complete_task',
+	skip: 'skip_task',
+	cancel: 'cancel_task',
+};
+
 async function executeTask(
 	this: IExecuteFunctions,
 	operation: string,
@@ -1749,13 +1806,36 @@ async function executeTask(
 		await seamlessMcpCall.call(this, 'delete_task', { taskId: id });
 		return { deleted: true };
 	}
-	if (operation === 'executeAction') {
+	if (operation in TASK_ACTION_TOOLS) {
 		const id = extractRlId(this, 'taskId', i);
-		const action = this.getNodeParameter('action', i) as string;
-		return seamlessMcpCall.call(this, 'execute_task_action', {
+		return seamlessMcpCall.call(this, TASK_ACTION_TOOLS[operation], {
 			taskId: id,
-			action,
 		});
+	}
+	if (operation === 'executeAction') {
+		// Legacy bundled action; MCP now exposes one tool per action.
+		const id = extractRlId(this, 'taskId', i);
+		const action = String(this.getNodeParameter('action', i)).toLowerCase();
+		if (action === 'delete') {
+			await seamlessMcpCall.call(this, 'delete_task', { taskId: id });
+			return { deleted: true };
+		}
+		if (action === 'schedule' || action === 'reschedule') {
+			throw new NodeOperationError(
+				this.getNode(),
+				`The "${action}" task action is no longer available. Use the Update operation with Due At to set the task's due date.`,
+				{ itemIndex: i },
+			);
+		}
+		const toolName = TASK_ACTION_TOOLS[action];
+		if (!toolName) {
+			throw new NodeOperationError(
+				this.getNode(),
+				`Unsupported task action "${action}". Use one of: ${Object.keys(TASK_ACTION_TOOLS).join(', ')}, delete.`,
+				{ itemIndex: i },
+			);
+		}
+		return seamlessMcpCall.call(this, toolName, { taskId: id });
 	}
 	return {};
 }

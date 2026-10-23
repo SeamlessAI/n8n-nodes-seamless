@@ -7,6 +7,8 @@ import {
 	campaignResourceLocatorModes,
 } from './campaignShared';
 
+const CAMPAIGN_START_REQUIREMENTS =
+	'The campaign must have a schedule, at least one linked email account if it has email steps, at least one contact, at least one step, and an email template on every unfinished automatic email step. The account owner must also have accepted the Engage Terms of Service in the Seamless.AI app (otherwise 403 tosNotAccepted). Returns the campaign ID and new status.';
 const campaignOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -23,10 +25,24 @@ const campaignOperations: INodeProperties[] = [
 					'Add contacts to a campaign by ID (max 500). Rejected if the campaign is archived or deleted. Returns the updated campaign and contactsAdded — the number actually enrolled, which can be lower than requested when contacts are not in the org or fall below the campaign AI score threshold.',
 			},
 			{
+				name: 'Archive',
+				value: 'archive',
+				action: 'Archive campaign',
+				description:
+					'Archive a draft, active, or paused campaign, stopping it and hiding it from the active campaign list. Restore it to draft with Unarchive. Returns the campaign ID and new status.',
+			},
+			{
 				name: 'Clone',
 				value: 'clone',
 				action: 'Clone campaign',
 				description: 'Create a copy of an existing campaign',
+			},
+			{
+				name: 'Complete',
+				value: 'complete',
+				action: 'Complete campaign',
+				description:
+					'Mark an active campaign as completed, ending it for all contacts. A completed campaign cannot be started, resumed, or archived again. Returns the campaign ID and new status.',
 			},
 			{
 				name: 'Create',
@@ -40,13 +56,6 @@ const campaignOperations: INodeProperties[] = [
 				value: 'delete',
 				action: 'Delete campaign',
 				description: 'Permanently delete a campaign',
-			},
-			{
-				name: 'Execute Action',
-				value: 'executeAction',
-				action: 'Execute action on campaign',
-				description:
-					'Start, pause, resume, complete, archive, unarchive, or delete a campaign. Start/Resume require at least one step, at least one contact, a linked email account when the campaign has email steps, and a template on every unfinished auto-email step.',
 			},
 			{
 				name: 'Get',
@@ -74,11 +83,37 @@ const campaignOperations: INodeProperties[] = [
 				description: 'Retrieve performance metrics for a campaign',
 			},
 			{
+				name: 'Pause',
+				value: 'pause',
+				action: 'Pause campaign',
+				description:
+					'Pause an active campaign. No further steps run or emails send until it is resumed with Resume. Returns the campaign ID and new status.',
+			},
+			{
 				name: 'Remove Contacts',
 				value: 'removeContacts',
 				action: 'Remove contacts from campaign',
 				description:
 					'Remove contacts from a campaign by ID (max 500). Returns the updated campaign and contactsRemoved — the number actually removed, which is 0 when none of the IDs are currently enrolled. Does not delete the contacts themselves.',
+			},
+			{
+				name: 'Resume',
+				value: 'resume',
+				action: 'Resume campaign',
+				description: `Resume a paused campaign so it continues working its contacts and sending its email steps. Only a paused campaign can be resumed. ${CAMPAIGN_START_REQUIREMENTS}`,
+			},
+			{
+				name: 'Start',
+				value: 'start',
+				action: 'Start campaign',
+				description: `Start a draft campaign so it begins working its contacts and sending its email steps. Only a draft campaign can be started. ${CAMPAIGN_START_REQUIREMENTS}`,
+			},
+			{
+				name: 'Unarchive',
+				value: 'unarchive',
+				action: 'Unarchive campaign',
+				description:
+					'Restore an archived campaign to draft. It does not resume sending; run Start afterward to run it again. Returns the campaign ID and new status.',
 			},
 			{
 				name: 'Update',
@@ -107,6 +142,12 @@ const campaignFields: INodeProperties[] = [
 					'get',
 					'update',
 					'delete',
+					'start',
+					'pause',
+					'resume',
+					'complete',
+					'archive',
+					'unarchive',
 					'executeAction',
 					'clone',
 					'addContacts',
@@ -206,7 +247,7 @@ const campaignFields: INodeProperties[] = [
 			},
 		],
 	},
-	// ------ Execute Action ------
+	// ------ Execute Action (legacy; kept so saved workflows keep running) ------
 	{
 		displayName: 'Action',
 		name: 'action',
@@ -214,7 +255,7 @@ const campaignFields: INodeProperties[] = [
 		default: 'START',
 		required: true,
 		description:
-			'Allowed transitions: DRAFT → START/ARCHIVE; ACTIVE → PAUSE/COMPLETE/ARCHIVE; PAUSED → RESUME/ARCHIVE; ARCHIVED → UNARCHIVE/DELETE. Case-insensitive when supplied via an expression.',
+			'Deprecated: the Execute Action operation was replaced by the Start, Pause, Resume, Complete, Archive, Unarchive, and Delete operations. Each value is routed to the matching operation. Allowed transitions: DRAFT → START/ARCHIVE; ACTIVE → PAUSE/COMPLETE/ARCHIVE; PAUSED → RESUME/ARCHIVE; ARCHIVED → UNARCHIVE/DELETE. Case-insensitive when supplied via an expression.',
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['executeAction'] },
 		},

@@ -30,16 +30,31 @@ const campaignStepOperations: INodeProperties[] = [
 					'Remove a draft step from a campaign. Remaining steps are renumbered; returns the deleted step and the remaining steps.',
 			},
 			{
-				name: 'Execute Action',
-				value: 'executeAction',
-				action: 'Execute action on campaign step',
-				description: 'Pause, resume, or skip a campaign step',
-			},
-			{
 				name: 'Get Many',
 				value: 'getMany',
 				action: 'Get many campaign steps',
 				description: 'Retrieve all steps in a campaign',
+			},
+			{
+				name: 'Pause',
+				value: 'pause',
+				action: 'Pause campaign step',
+				description:
+					'Pause an in-progress step of a campaign. Its tasks stop running until the step is resumed with Resume. The campaign must not be completed, archived, or deleted. Returns the step ID and new status.',
+			},
+			{
+				name: 'Resume',
+				value: 'resume',
+				action: 'Resume campaign step',
+				description:
+					'Resume a paused campaign step so its tasks run again, including any email sends. The campaign must not be completed, archived, or deleted. Returns the step ID and new status.',
+			},
+			{
+				name: 'Skip',
+				value: 'skip',
+				action: 'Skip campaign step',
+				description:
+					'Skip an in-progress or paused campaign step, so its remaining tasks are skipped for every contact. The campaign must not be completed, archived, or deleted. Returns the step ID and new status.',
 			},
 			{
 				name: 'Update',
@@ -74,7 +89,14 @@ const campaignStepFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['campaignStep'],
-				operation: ['update', 'delete', 'executeAction'],
+				operation: [
+					'update',
+					'delete',
+					'pause',
+					'resume',
+					'skip',
+					'executeAction',
+				],
 			},
 		},
 	},
@@ -150,7 +172,7 @@ const campaignStepFields: INodeProperties[] = [
 		},
 		options: campaignStepUpdateFields,
 	},
-	// ------ Execute Action ------
+	// ------ Execute Action (legacy; kept so saved workflows keep running) ------
 	{
 		displayName: 'Action',
 		name: 'action',
@@ -158,7 +180,7 @@ const campaignStepFields: INodeProperties[] = [
 		default: 'PAUSE',
 		required: true,
 		description:
-			'Case-insensitive when supplied via an expression',
+			'Deprecated: the Execute Action operation was replaced by the Pause, Resume, and Skip operations. Each value is routed to the matching operation. Case-insensitive when supplied via an expression.',
 		displayOptions: {
 			show: { resource: ['campaignStep'], operation: ['executeAction'] },
 		},
