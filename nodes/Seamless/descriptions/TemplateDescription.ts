@@ -93,13 +93,14 @@ const templateFields: INodeProperties[] = [
 		displayName: 'Type',
 		name: 'type',
 		type: 'options',
-		default: 'email',
-		description: 'The type of the template',
-		options: TEMPLATE_TYPE_OPTIONS,
+		default: '',
+		description:
+			'Restricts the lookup to templates of this type. Leave as All to match the template by ID regardless of its type.',
+		options: [{ name: 'All', value: '' }, ...TEMPLATE_TYPE_OPTIONS],
 		displayOptions: {
 			show: {
 				resource: ['template'],
-				operation: ['get', 'update', 'delete'],
+				operation: ['get', 'delete'],
 			},
 		},
 	},
@@ -140,7 +141,7 @@ const templateFields: INodeProperties[] = [
 				type: 'options',
 				default: 'static',
 				description:
-					'Content category: "static" for standard templates, "ai_prompt" for AI-generated',
+					'Content category: "static" for standard templates with merge tags, "ai_prompt" for a prompt the AI runs per contact (plain instructions, no merge tags or variables in the body)',
 				options: [
 					{ name: 'Static', value: 'static' },
 					{ name: 'AI Prompt', value: 'ai_prompt' },
@@ -198,6 +199,8 @@ const templateFields: INodeProperties[] = [
 				name: 'contentCategory',
 				type: 'options',
 				default: 'static',
+				description:
+					'Content category: "static" for standard templates with merge tags, "ai_prompt" for a prompt the AI runs per contact (plain instructions, no merge tags or variables in the body)',
 				options: [
 					{ name: 'Static', value: 'static' },
 					{ name: 'AI Prompt', value: 'ai_prompt' },
@@ -214,6 +217,15 @@ const templateFields: INodeProperties[] = [
 				name: 'subject',
 				type: 'string',
 				default: '',
+			},
+			{
+				displayName: 'Type',
+				name: 'type',
+				type: 'options',
+				default: 'email',
+				description:
+					'Only needed to change the template type. Leave it out to keep the existing type.',
+				options: TEMPLATE_TYPE_OPTIONS,
 			},
 		],
 	},
@@ -255,7 +267,7 @@ const templateFields: INodeProperties[] = [
 		name: 'type',
 		type: 'options',
 		default: '',
-		description: 'Filter templates by type',
+		description: 'Filter templates by type. Leave as All to match every type.',
 		options: [{ name: 'All', value: '' }, ...TEMPLATE_TYPE_OPTIONS],
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },

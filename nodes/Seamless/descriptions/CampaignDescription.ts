@@ -2,9 +2,13 @@ import { type INodeProperties } from 'n8n-workflow';
 
 import {
 	campaignCreateStepsField,
+	campaignDailySendLimitsField,
+	campaignDailyTaskLimitsField,
 	campaignResourceLocatorModes,
 } from './campaignShared';
 
+const CAMPAIGN_START_REQUIREMENTS =
+	'The campaign must have a schedule, at least one linked email account if it has email steps, at least one contact, at least one step, and an email template on every unfinished automatic email step. The account owner must also have accepted the Engage Terms of Service in the Seamless.AI app (otherwise 403 tosNotAccepted). Returns the campaign ID and new status.';
 const campaignOperations: INodeProperties[] = [
 	{
 		displayName: 'Operation',
@@ -21,29 +25,37 @@ const campaignOperations: INodeProperties[] = [
 					'Add contacts to a campaign by ID (max 500). Rejected if the campaign is archived or deleted. Returns the updated campaign and contactsAdded — the number actually enrolled, which can be lower than requested when contacts are not in the org or fall below the campaign AI score threshold.',
 			},
 			{
+				name: 'Archive',
+				value: 'archive',
+				action: 'Archive campaign',
+				description:
+					'Archive a draft, active, or paused campaign, stopping it and hiding it from the active campaign list. Restore it to draft with Unarchive. Returns the campaign ID and new status.',
+			},
+			{
 				name: 'Clone',
 				value: 'clone',
 				action: 'Clone campaign',
 				description: 'Create a copy of an existing campaign',
 			},
 			{
+				name: 'Complete',
+				value: 'complete',
+				action: 'Complete campaign',
+				description:
+					'Mark an active campaign as completed, ending it for all contacts. A completed campaign cannot be started, resumed, or archived again. Returns the campaign ID and new status.',
+			},
+			{
 				name: 'Create',
 				value: 'create',
 				action: 'Create campaign',
-				description: 'Create a new campaign',
+				description:
+					'Create a new campaign, optionally with inline steps and contacts. Each inline step\'s content is exactly one of Template ID, Template Data (static template with merge tags), or AI Prompt (plain instructions with no merge tags; the AI writes personalized content per contact when the step runs).',
 			},
 			{
 				name: 'Delete',
 				value: 'delete',
 				action: 'Delete campaign',
 				description: 'Permanently delete a campaign',
-			},
-			{
-				name: 'Execute Action',
-				value: 'executeAction',
-				action: 'Execute action on campaign',
-				description:
-					'Start, pause, resume, complete, archive, unarchive, or delete a campaign',
 			},
 			{
 				name: 'Get',
@@ -55,7 +67,8 @@ const campaignOperations: INodeProperties[] = [
 				name: 'Get Contacts',
 				value: 'getContacts',
 				action: 'Get campaign contacts',
-				description: 'Retrieve contacts in a campaign',
+				description:
+					'Retrieve contacts in a campaign with engagement status and current step. Paginated by limit/offset; the server reports total and hasMore.',
 			},
 			{
 				name: 'Get Many',
@@ -70,6 +83,13 @@ const campaignOperations: INodeProperties[] = [
 				description: 'Retrieve performance metrics for a campaign',
 			},
 			{
+				name: 'Pause',
+				value: 'pause',
+				action: 'Pause campaign',
+				description:
+					'Pause an active campaign. No further steps run or emails send until it is resumed with Resume. Returns the campaign ID and new status.',
+			},
+			{
 				name: 'Remove Contacts',
 				value: 'removeContacts',
 				action: 'Remove contacts from campaign',
@@ -77,10 +97,30 @@ const campaignOperations: INodeProperties[] = [
 					'Remove contacts from a campaign by ID (max 500). Returns the updated campaign and contactsRemoved — the number actually removed, which is 0 when none of the IDs are currently enrolled. Does not delete the contacts themselves.',
 			},
 			{
+				name: 'Resume',
+				value: 'resume',
+				action: 'Resume campaign',
+				description: `Resume a paused campaign so it continues working its contacts and sending its email steps. Only a paused campaign can be resumed. ${CAMPAIGN_START_REQUIREMENTS}`,
+			},
+			{
+				name: 'Start',
+				value: 'start',
+				action: 'Start campaign',
+				description: `Start a draft campaign so it begins working its contacts and sending its email steps. Only a draft campaign can be started. ${CAMPAIGN_START_REQUIREMENTS}`,
+			},
+			{
+				name: 'Unarchive',
+				value: 'unarchive',
+				action: 'Unarchive campaign',
+				description:
+					'Restore an archived campaign to draft. It does not resume sending; run Start afterward to run it again. Returns the campaign ID and new status.',
+			},
+			{
 				name: 'Update',
 				value: 'update',
 				action: 'Update campaign',
-				description: 'Update campaign properties',
+				description:
+					'Update a campaign\'s name, visibility, linked email accounts, per-account daily send limits, or per-day task limits. Send and task limits can be changed in any campaign state and take effect at once (an active campaign moves contacts between active and pending to fit). Email accounts can be added in any state, but removing one from an active campaign fails (422 campaignActive): pause the campaign first, then resume it. Returns the updated campaign with its dailySendLimits and dailyTaskLimits.',
 			},
 		],
 		default: 'getMany',
@@ -102,6 +142,12 @@ const campaignFields: INodeProperties[] = [
 					'get',
 					'update',
 					'delete',
+					'start',
+					'pause',
+					'resume',
+					'complete',
+					'archive',
+					'unarchive',
 					'executeAction',
 					'clone',
 					'addContacts',
@@ -144,6 +190,12 @@ const campaignFields: INodeProperties[] = [
 				description:
 					'Comma-separated saved contact IDs (from Get My Contacts) to add inline. Max 500. Preferred over a separate Add Contacts call when building a new campaign.',
 			},
+			campaignDailySendLimitsField(
+				"This campaign's daily send limit on each linked email account (each Email Account ID must also be in Email Account IDs). Accounts not listed keep the default allocation. Requires the campaign send limits feature; otherwise the request is rejected.",
+			),
+			campaignDailyTaskLimitsField(
+				'Per-day task limits for the inline Steps: how many contacts may become due on each cadence day. Due Day must match a step and Daily Task Limit must be at least the number of steps on that day, otherwise the request fails before anything is created. Days not listed receive the default for organizations on campaign send limits and stay unlimited for everyone else. Requires the campaign send limits feature.',
+			),
 			{
 				displayName: 'Email Account IDs',
 				name: 'emailAccountIds',
@@ -165,12 +217,19 @@ const campaignFields: INodeProperties[] = [
 			show: { resource: ['campaign'], operation: ['update'] },
 		},
 		options: [
+			campaignDailySendLimitsField(
+				"This campaign's daily send limit on linked email accounts. Accounts not listed keep their current limit; unlinked accounts are rejected (link them via Email Account IDs first). Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
+			),
+			campaignDailyTaskLimitsField(
+				"Per-day task limits: how many contacts may become due on each cadence day. Due Day must match a step and Daily Task Limit must be at least the number of steps on that day; a day with an email step cannot exceed the campaign's dailySendCapacity. Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
+			),
 			{
 				displayName: 'Email Account IDs',
 				name: 'emailAccountIds',
 				type: 'string',
 				default: '',
-				description: 'Comma-separated email account IDs to link',
+				description:
+					'Comma-separated email account IDs to link for sending. Accounts can be added in any state; removing one from an active campaign fails with 422 campaignActive — pause the campaign first, then resume it.',
 			},
 			{
 				displayName: 'Is Public',
@@ -188,7 +247,7 @@ const campaignFields: INodeProperties[] = [
 			},
 		],
 	},
-	// ------ Execute Action ------
+	// ------ Execute Action (legacy; kept so saved workflows keep running) ------
 	{
 		displayName: 'Action',
 		name: 'action',
@@ -196,7 +255,7 @@ const campaignFields: INodeProperties[] = [
 		default: 'START',
 		required: true,
 		description:
-			'Allowed transitions: DRAFT → START/ARCHIVE; ACTIVE → PAUSE/COMPLETE/ARCHIVE; PAUSED → RESUME/ARCHIVE; ARCHIVED → UNARCHIVE/DELETE. Case-insensitive when supplied via an expression.',
+			'Deprecated: the Execute Action operation was replaced by the Start, Pause, Resume, Complete, Archive, Unarchive, and Delete operations. Each value is routed to the matching operation. Allowed transitions: DRAFT → START/ARCHIVE; ACTIVE → PAUSE/COMPLETE/ARCHIVE; PAUSED → RESUME/ARCHIVE; ARCHIVED → UNARCHIVE/DELETE. Case-insensitive when supplied via an expression.',
 		displayOptions: {
 			show: { resource: ['campaign'], operation: ['executeAction'] },
 		},
