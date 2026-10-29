@@ -120,7 +120,7 @@ const campaignOperations: INodeProperties[] = [
 				value: 'update',
 				action: 'Update campaign',
 				description:
-					'Update a campaign\'s name, visibility, linked email accounts, per-account daily send limits, or per-day task limits. Send and task limits can be changed in any campaign state and take effect at once (an active campaign moves contacts between active and pending to fit). Email accounts can be added in any state, but removing one from an active campaign fails (422 campaignActive): pause the campaign first, then resume it. Returns the updated campaign with its dailySendLimits and dailyTaskLimits.',
+					'Update a campaign\'s name, visibility, linked email accounts, per-account daily send limits, per-day task limits, or the daily task limit switch (Is Daily Task Limit Enabled). Send limits, task limits and the switch can be changed in any campaign state and take effect at once (an active campaign moves contacts between active and pending to fit). Email accounts can be added in any state, but removing one from an active campaign fails (422 campaignActive): pause the campaign first, then resume it. Returns the updated campaign with its dailySendLimits, dailyTaskLimits and isDailyTaskLimitEnabled.',
 			},
 		],
 		default: 'getMany',
@@ -204,6 +204,14 @@ const campaignFields: INodeProperties[] = [
 				description:
 					'Comma-separated email account IDs to link as sending addresses. Required before adding auto-email or manual-email steps.',
 			},
+			{
+				displayName: 'Is Daily Task Limit Enabled',
+				name: 'isDailyTaskLimitEnabled',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether the per-day task limits apply (default false). Off means no daily task cap on any step; email steps still follow the inbox send limits. The stored Daily Task Limits are kept. Requires the campaign send limits feature.',
+			},
 		],
 	},
 	// ------ Update ------
@@ -230,6 +238,14 @@ const campaignFields: INodeProperties[] = [
 				default: '',
 				description:
 					'Comma-separated email account IDs to link for sending. Accounts can be added in any state; removing one from an active campaign fails with 422 campaignActive — pause the campaign first, then resume it.',
+			},
+			{
+				displayName: 'Is Daily Task Limit Enabled',
+				name: 'isDailyTaskLimitEnabled',
+				type: 'boolean',
+				default: false,
+				description:
+					'Whether the per-day task limits apply. Off means no daily task cap on any step; email steps still follow the inbox send limits. The stored Daily Task Limits are kept; a change takes effect at once in any campaign state. Requires the campaign send limits feature.',
 			},
 			{
 				displayName: 'Is Public',

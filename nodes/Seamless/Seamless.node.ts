@@ -1193,6 +1193,8 @@ async function executeCampaign(
 			(body.emailAccountIds as number[] | undefined) ?? [],
 		);
 		if (dailySendLimits.length) body.dailySendLimits = dailySendLimits;
+		if (additionalFields.isDailyTaskLimitEnabled !== undefined)
+			body.isDailyTaskLimitEnabled = additionalFields.isDailyTaskLimitEnabled;
 		return seamlessMcpCall.call(this, 'create_campaign', body);
 	}
 	if (operation === 'get') {
@@ -1252,6 +1254,8 @@ async function executeCampaign(
 			i,
 		);
 		if (dailyTaskLimits.length) body.dailyTaskLimits = dailyTaskLimits;
+		if (updateFields.isDailyTaskLimitEnabled !== undefined)
+			body.isDailyTaskLimitEnabled = updateFields.isDailyTaskLimitEnabled;
 		return seamlessMcpCall.call(this, 'update_campaign', body);
 	}
 	if (operation === 'delete') {
