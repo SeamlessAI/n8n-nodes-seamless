@@ -727,6 +727,15 @@ async function executeContact(
 		) as boolean;
 		if (skipDeduplicationCheck) body.skipDeduplicationCheck = true;
 
+		const researchTypes = this.getNodeParameter(
+			'researchTypes',
+			i,
+			[],
+		) as string[];
+		if (Array.isArray(researchTypes) && researchTypes.length) {
+			body.researchTypes = researchTypes;
+		}
+
 		const waitForResults = this.getNodeParameter(
 			'waitForResults',
 			i,

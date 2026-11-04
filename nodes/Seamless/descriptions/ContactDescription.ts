@@ -21,14 +21,14 @@ const contactOperations: INodeProperties[] = [
 				value: 'pollResearch',
 				action: 'Poll contact research results',
 				description:
-					'Check the status of a pending research request. Keep polling while any result is queued or researching. Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first).',
+					'Check the status of a pending research request. Keep polling while any result is queued or researching. Terminal statuses: done, error, missing, not found, or a Research Types rejection (fullContactRequired, component-disabled-for-org, variable-credits-disabled). Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first) and researchedTypes (the contact data researched so far).',
 			},
 			{
 				name: 'Research',
 				value: 'research',
 				action: 'Research contacts',
 				description:
-					'Enrich contacts with verified emails, phone numbers, job history, and other data (consumes credits)',
+					'Enrich contacts with verified emails, phone numbers, job history, and other data. Each contact consumes credits for the components it researches (see Research Types); credits for data that is not found are refunded, and the request is rejected with insufficient credits when the balance cannot cover every contact.',
 			},
 			{
 				name: 'Search',
@@ -669,12 +669,27 @@ const contactFields: INodeProperties[] = [
 		},
 	},
 	{
+		displayName: 'Research Types',
+		name: 'researchTypes',
+		type: 'multiOptions',
+		default: [],
+		description:
+			'Contact data to research for every contact: Email, Phone, or both. Leave empty to use the account\'s Contact Data settings. Default prices in credits: email 1, phone 5, both 6. A single component can be rejected with fullContactRequired, component-disabled-for-org, or variable-credits-disabled; the error says how to recover. Asking for a component that a contact researched in the last few minutes lacks adds it to that contact and charges only that component.',
+		options: [
+			{ name: 'Email', value: 'email' },
+			{ name: 'Phone', value: 'phone' },
+		],
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['research'] },
+		},
+	},
+	{
 		displayName: 'Skip Deduplication Check',
 		name: 'skipDeduplicationCheck',
 		type: 'boolean',
 		default: false,
 		description:
-			'Whether to bypass the deduplication check so an already-researched record is enriched again. Consumes credits each time.',
+			'Whether to bypass the deduplication check so an already-researched contact is researched again as a new contact. Consumes credits each time.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['research'] },
 		},
