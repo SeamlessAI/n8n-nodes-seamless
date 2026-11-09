@@ -46,13 +46,23 @@ const campaignResourceLocator = {
 
 export const campaignResourceLocatorModes = campaignResourceLocator.modes;
 
+const campaignStepAiPromptField: INodeProperties = {
+	displayName: 'AI Prompt',
+	name: 'aiPrompt',
+	type: 'string',
+	default: '',
+	typeOptions: { rows: 5 },
+	description:
+		'Plain-text instructions (max 10,000 characters) the AI runs for EACH contact when the step executes, producing unique content per contact instead of a fixed template. Describe the goal, value proposition, tone, call to action and length; do not write the message itself and do not include HTML. Do not include merge tags or variables such as {first_name} or {company} — the AI receives the contact\'s full profile and personalizes from it; say "address them by first name" rather than using a tag. For email steps the AI writes both the subject and the body. Cannot be combined with Template ID or Template Data. Each per-contact generation consumes AI credits.',
+};
+
 const campaignStepTemplateDataField: INodeProperties = {
 	displayName: 'Template Data',
 	name: 'templateData',
 	type: 'fixedCollection',
 	default: {},
 	description:
-		'Inline template content. Creates a hidden template for this step. Cannot be combined with Template ID.',
+		'Inline static template content. Creates a hidden template for this step; the same copy is sent to every contact with the variables filled in. Cannot be combined with Template ID or AI Prompt.',
 	options: [
 		{
 			displayName: 'Template Data',
@@ -81,6 +91,7 @@ const campaignStepTemplateDataField: INodeProperties = {
 };
 
 export const campaignStepOptionalFields: INodeProperties[] = [
+	campaignStepAiPromptField,
 	{
 		displayName: 'Description',
 		name: 'description',
@@ -94,12 +105,16 @@ export const campaignStepOptionalFields: INodeProperties[] = [
 		type: 'number',
 		default: 0,
 		description:
-			'ID of an existing template. Cannot be combined with Template Data.',
+			'ID of an existing saved template. Cannot be combined with Template Data or AI Prompt.',
 	},
 	campaignStepTemplateDataField,
 ];
 
 export const campaignStepUpdateFields: INodeProperties[] = [
+	{
+		...campaignStepAiPromptField,
+		description: `Replaces the step content with an AI prompt. ${campaignStepAiPromptField.description}`,
+	},
 	{
 		displayName: 'Description',
 		name: 'description',
@@ -125,7 +140,7 @@ export const campaignStepUpdateFields: INodeProperties[] = [
 		type: 'number',
 		default: 0,
 		description:
-			'ID of an existing template. Cannot be combined with Template Data.',
+			'ID of an existing saved template. Cannot be combined with Template Data or AI Prompt.',
 	},
 	campaignStepTemplateDataField,
 ];
@@ -139,7 +154,7 @@ const campaignStepInlineValues: INodeProperties[] = [
 		required: true,
 		options: CAMPAIGN_STEP_TYPE_OPTIONS,
 		description:
-			'For auto-email and manual-email steps, the campaign must have linked email accounts',
+			'For auto-email and manual-email steps, the campaign must have linked email accounts. Auto-email steps must include a Template ID, Template Data, or AI Prompt; other email steps should too.',
 	},
 	{
 		displayName: 'Name',
@@ -162,6 +177,87 @@ const campaignStepInlineValues: INodeProperties[] = [
 	...campaignStepOptionalFields,
 ];
 
+/** Builds the repeatable `dailyTaskLimits` collection; wording differs between Create and Update. */
+export const campaignDailyTaskLimitsField = (
+	description: string,
+): INodeProperties => ({
+	displayName: 'Daily Task Limits',
+	name: 'dailyTaskLimits',
+	type: 'fixedCollection',
+	typeOptions: { multipleValues: true },
+	placeholder: 'Add Day Limit',
+	default: {},
+	description,
+	options: [
+		{
+			displayName: 'Day Limit',
+			name: 'limit',
+			values: [
+				{
+					displayName: 'Due Day',
+					name: 'dueDay',
+					type: 'number',
+					default: 1,
+					required: true,
+					typeOptions: { minValue: 0 },
+					description: 'Cadence day; must match the Due Day of a step',
+				},
+				{
+					displayName: 'Daily Task Limit',
+					name: 'dailyTaskLimit',
+					type: 'number',
+					default: 1,
+					required: true,
+					typeOptions: { minValue: 1 },
+					description:
+						'Maximum contacts that may become due on that day; must be at least the number of steps due that day. A day cannot be made unlimited from here.',
+				},
+			],
+		},
+	],
+});
+
+/** Builds the repeatable `dailySendLimits` collection; wording differs between Create and Update. */
+export const campaignDailySendLimitsField = (
+	description: string,
+): INodeProperties => ({
+	displayName: 'Daily Send Limits',
+	name: 'dailySendLimits',
+	type: 'fixedCollection',
+	typeOptions: { multipleValues: true },
+	placeholder: 'Add Account Limit',
+	default: {},
+	description,
+	options: [
+		{
+			displayName: 'Account Limit',
+			name: 'limit',
+			values: [
+				{
+					displayName: 'Email Account ID',
+					name: 'emailAccountId',
+					type: 'number',
+					default: 0,
+					required: true,
+					typeOptions: { minValue: 1 },
+					description:
+						'Linked email account ID (see Email Account → Get Many)',
+				},
+				{
+					displayName: 'Daily Send Limit',
+					name: 'dailySendLimit',
+					type: 'number',
+					default: 0,
+					required: true,
+					typeOptions: { minValue: 0 },
+					description:
+						"This campaign's daily send limit on the account; 0 stops sending from it",
+				},
+			],
+		},
+	],
+});
+
 export const campaignCreateStepsField: INodeProperties = {
 	displayName: 'Steps',
 	name: 'steps',
@@ -170,7 +266,7 @@ export const campaignCreateStepsField: INodeProperties = {
 	placeholder: 'Add Step',
 	default: {},
 	description:
-		'Campaign steps to create inline (preferred over separate Create Campaign Step calls). Processed sequentially in order.',
+		'Campaign steps to create inline (preferred over separate Create Campaign Step calls). Processed sequentially in order. Each step takes its content from exactly one of Template ID (saved template), Template Data (static template with merge tags), or AI Prompt (plain instructions with no merge tags; the AI writes personalized content per contact when the step runs).',
 	displayOptions: {
 		show: { resource: ['campaign'], operation: ['create'] },
 	},

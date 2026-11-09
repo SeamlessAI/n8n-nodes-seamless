@@ -1,4 +1,5 @@
 export { activityOperations, activityFields } from './ActivityDescription';
+export { autopilotOperations, autopilotFields } from './AutopilotDescription';
 export { callOperations, callFields } from './CallDescription';
 export { campaignOperations, campaignFields } from './CampaignDescription';
 export {

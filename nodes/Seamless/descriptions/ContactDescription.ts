@@ -21,21 +21,21 @@ const contactOperations: INodeProperties[] = [
 				value: 'pollResearch',
 				action: 'Poll contact research results',
 				description:
-					'Check the status of a pending research request. Keep polling while any result is queued or researching. Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first).',
+					'Check the status of a pending research request. Keep polling while any result is queued or researching. Terminal statuses: done, error, missing, not found, or a Research Types rejection (fullContactRequired, component-disabled-for-org, variable-credits-disabled). Done results carry the enriched contact, including jobHistory (prior roles as companyName/title/startedAt/endedAt, most recent departure first) and researchedTypes (the contact data researched so far).',
 			},
 			{
 				name: 'Research',
 				value: 'research',
 				action: 'Research contacts',
 				description:
-					'Enrich contacts with verified emails, phone numbers, job history, and other data (consumes credits)',
+					'Enrich contacts with verified emails, phone numbers, job history, and other data. Each contact consumes credits for the components it researches (see Research Types); credits for data that is not found are refunded, and the request is rejected with insufficient credits when the balance cannot cover every contact.',
 			},
 			{
 				name: 'Search',
 				value: 'search',
 				action: 'Search contacts',
 				description:
-					'Find contacts matching filter criteria. At least one filter (or a Saved Search ID) is required; a search with none is rejected rather than returning an empty page. Results use the filter vocabulary (fullName, jobTitle, companyName, companySize) so they can be fed back into another search; the older name/title/company/employeeSizeRange fields are deprecated aliases kept for one release.',
+					'Find contacts matching filter criteria. At least one filter (or a Saved Search ID) is required; a search with none is rejected rather than returning an empty page. Costs 1 credit per 50 results returned (rounded up); a page is trimmed to the rows your remaining credits cover, and Return All stops paging once credits run out. Results use the filter vocabulary (fullName, jobTitle, companyName, companySize) so they can be fed back into another search; the older name/title/company/employeeSizeRange fields are deprecated aliases kept for one release.',
 			},
 			{
 				name: 'Update',
@@ -135,9 +135,9 @@ const contactFields: INodeProperties[] = [
 		name: 'industry',
 		type: 'string',
 		default: '',
-		placeholder: 'e.g. Software',
+		placeholder: 'e.g. Financial Services, -Staffing and Recruiting',
 		description:
-			'Filter by industry. Comma-separated values to provide multiple.',
+			'Filter by industry label (e.g. Financial Services, -Staffing and Recruiting). Prefix a value with "-" to exclude it. Unknown labels are rejected, with or without the prefix. Comma-separated values to provide multiple (max 5).',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['search'] },
 		},
@@ -333,7 +333,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter by NAICS code, independently of Industry (e.g. 511210). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple. Matched against the company\'s own NAICS code; a company with no NAICS code also matches when its SIC code maps to a requested code.',
+					'Filter by NAICS code, independently of Industry (e.g. 511210, -561310). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple. Matched against the company\'s own NAICS code; a company with no NAICS code also matches when its SIC code maps to a requested code.',
 			},
 			{
 				displayName: 'Industry SIC Codes',
@@ -341,7 +341,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter by SIC code, independently of Industry (e.g. 7372). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
+					'Filter by SIC code, independently of Industry (e.g. 7372, -5734). Prefix a value with "-" to exclude it. Comma-separated values to provide multiple.',
 			},
 			{
 				displayName: 'Job Change Day Range',
@@ -482,7 +482,7 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Filter to contacts who previously worked at these companies. Names always match on relevance, so aliases and name fragments match too. Comma-separated values to provide multiple.',
+					'Filter to contacts who previously worked at these companies and no longer work there. Names always match on relevance, so aliases and name fragments match too. Comma-separated values to provide multiple.',
 			},
 			{
 				displayName: 'Past Company Only Most Recent Departure',
@@ -669,12 +669,27 @@ const contactFields: INodeProperties[] = [
 		},
 	},
 	{
+		displayName: 'Research Types',
+		name: 'researchTypes',
+		type: 'multiOptions',
+		default: [],
+		description:
+			'Contact data to research for every contact: Email, Phone, or both. Leave empty to use the account\'s Contact Data settings. Default prices in credits: email 1, phone 5, both 6. A single component can be rejected with fullContactRequired, component-disabled-for-org, or variable-credits-disabled; the error says how to recover. Asking for a component that a contact researched in the last few minutes lacks adds it to that contact and charges only that component.',
+		options: [
+			{ name: 'Email', value: 'email' },
+			{ name: 'Phone', value: 'phone' },
+		],
+		displayOptions: {
+			show: { resource: ['contact'], operation: ['research'] },
+		},
+	},
+	{
 		displayName: 'Skip Deduplication Check',
 		name: 'skipDeduplicationCheck',
 		type: 'boolean',
 		default: false,
 		description:
-			'Whether to bypass the deduplication check so an already-researched record is enriched again. Consumes credits each time.',
+			'Whether to bypass the deduplication check so an already-researched contact is researched again as a new contact. Consumes credits each time.',
 		displayOptions: {
 			show: { resource: ['contact'], operation: ['research'] },
 		},

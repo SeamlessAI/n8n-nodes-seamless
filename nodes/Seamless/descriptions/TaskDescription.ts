@@ -36,6 +36,20 @@ const taskOperations: INodeProperties[] = [
 		displayOptions: { show: { resource: ['task'] } },
 		options: [
 			{
+				name: 'Cancel',
+				value: 'cancel',
+				action: 'Cancel task',
+				description:
+					'Cancel a task that has not finished, so it never runs. Returns the task ID and the action taken.',
+			},
+			{
+				name: 'Complete',
+				value: 'complete',
+				action: 'Complete task',
+				description:
+					'Mark a to-do, paused, scheduled, or errored task as completed, for example after the call or work was done manually. This does not send anything. Returns the task ID and the action taken.',
+			},
+			{
 				name: 'Create',
 				value: 'create',
 				action: 'Create task',
@@ -46,13 +60,6 @@ const taskOperations: INodeProperties[] = [
 				value: 'delete',
 				action: 'Delete task',
 				description: 'Permanently remove a task',
-			},
-			{
-				name: 'Execute Action',
-				value: 'executeAction',
-				action: 'Execute action on task',
-				description:
-					'Change the state of a task (e.g. pause, start, complete)',
 			},
 			{
 				name: 'Get',
@@ -67,10 +74,39 @@ const taskOperations: INodeProperties[] = [
 				description: 'Retrieve a list of tasks',
 			},
 			{
+				name: 'Pause',
+				value: 'pause',
+				action: 'Pause task',
+				description:
+					'Pause a to-do, scheduled, or errored task so it does not run until it is unpaused with Unpause. Returns the task ID and the action taken.',
+			},
+			{
+				name: 'Skip',
+				value: 'skip',
+				action: 'Skip task',
+				description:
+					'Skip a to-do, paused, pending, scheduled, or errored task so it is not done for this contact. Returns the task ID and the action taken.',
+			},
+			{
+				name: 'Start',
+				value: 'start',
+				action: 'Start task',
+				description:
+					'Run a to-do or scheduled task now. For an automatic email task this sends the email immediately. Returns the task ID and the action taken.',
+			},
+			{
+				name: 'Unpause',
+				value: 'unpause',
+				action: 'Unpause task',
+				description:
+					'Unpause a paused task so it is due again. A campaign email task can send once it is due. Returns the task ID and the action taken.',
+			},
+			{
 				name: 'Update',
 				value: 'update',
 				action: 'Update task',
-				description: 'Update task properties',
+				description:
+					'Update task properties, including the due date (the former Schedule/Reschedule actions)',
 			},
 		],
 		default: 'getMany',
@@ -88,7 +124,18 @@ const taskFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['task'],
-				operation: ['get', 'update', 'delete', 'executeAction'],
+				operation: [
+					'get',
+					'update',
+					'delete',
+					'start',
+					'pause',
+					'unpause',
+					'complete',
+					'skip',
+					'cancel',
+					'executeAction',
+				],
 			},
 		},
 		modes: [
@@ -231,7 +278,7 @@ const taskFields: INodeProperties[] = [
 			},
 		],
 	},
-	// ------ Execute Action ------
+	// ------ Execute Action (legacy; kept so saved workflows keep running) ------
 	{
 		displayName: 'Action',
 		name: 'action',
@@ -239,7 +286,7 @@ const taskFields: INodeProperties[] = [
 		default: 'start',
 		required: true,
 		description:
-			'Case-insensitive when supplied via an expression',
+			'Deprecated: the Execute Action operation was replaced by the Start, Pause, Unpause, Complete, Skip, Cancel, and Delete operations. Each value is routed to the matching operation; Schedule and Reschedule are no longer supported — use Update with Due At instead. Case-insensitive when supplied via an expression.',
 		displayOptions: {
 			show: { resource: ['task'], operation: ['executeAction'] },
 		},

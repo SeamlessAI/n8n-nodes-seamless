@@ -110,11 +110,14 @@ function parseMarkdownTable(text: string): IDataObject[] | null {
  * Normalize `result.structuredContent` to the shape callers expect: rows under
  * `data`, or the lone row itself so single-record operations receive a flat object.
  * Any sibling keys (e.g. `pagination`, `nextToken`) are kept alongside `data`.
+ * A paginated page is always a list, even when it holds a single row.
  */
 function normalizeStructuredContent(structured: IDataObject): IDataObject {
 	const rows = structured.results;
 	if (!Array.isArray(rows)) return structured;
-	if (rows.length === 1) return rows[0] as IDataObject;
+	if (rows.length === 1 && structured.pagination === undefined) {
+		return rows[0] as IDataObject;
+	}
 
 	const rest = { ...structured };
 	delete rest.results;
@@ -250,6 +253,9 @@ async function seamlessMcpCallAllPages(
 
 /**
  * Auto-paginate through offset-based MCP tools (offset + limit).
+ * Stops on `pagination.hasMore === false` when the tool reports it
+ * (list_campaigns, list_campaign_contacts, get_activity_feed); otherwise
+ * falls back to a short page as the end signal.
  */
 async function seamlessMcpCallAllOffsets(
 	this: IExecuteFunctions | IPollFunctions,
@@ -275,7 +281,12 @@ async function seamlessMcpCallAllOffsets(
 		if (Array.isArray(items) && items.length > 0) {
 			allItems.push(...items);
 			offset += items.length;
-			hasMore = items.length === batchSize;
+			const reportedHasMore = (response.pagination as IDataObject | undefined)
+				?.hasMore;
+			hasMore =
+				typeof reportedHasMore === 'boolean'
+					? reportedHasMore
+					: items.length === batchSize;
 		} else {
 			hasMore = false;
 		}
@@ -285,7 +296,27 @@ async function seamlessMcpCallAllOffsets(
 }
 
 /**
+ * Whether a charged search page exhausted the caller's credits (SEAM-44181).
+ * The next page would be rejected with `insufficientCredits`, so stop paging
+ * and keep the rows already paid for. Uncharged pages (free-api-search beta,
+ * `creditsConsumed` 0) and an unreadable balance (`null`) never stop paging.
+ */
+function searchCreditsExhausted(pagination: IDataObject | undefined): boolean {
+	if (!pagination) return false;
+	const consumed = pagination.creditsConsumed;
+	const remaining = pagination.creditsRemaining;
+	return (
+		typeof consumed === 'number' &&
+		consumed > 0 &&
+		typeof remaining === 'number' &&
+		remaining <= 0
+	);
+}
+
+/**
  * Auto-paginate through cursor-based MCP search tools (nextToken + limit).
+ * The cursor lives under `pagination.nextToken` in structuredContent; a
+ * top-level `nextToken` is still honored for older servers.
  */
 async function seamlessMcpSearchAll(
 	this: IExecuteFunctions,
@@ -310,8 +341,15 @@ async function seamlessMcpSearchAll(
 		const items = (response.data || []) as IDataObject[];
 		allItems.push(...items);
 
-		nextToken = response.nextToken as string | undefined;
-		hasMore = !!nextToken && (!maxResults || allItems.length < maxResults);
+		const pagination = response.pagination as IDataObject | undefined;
+		nextToken = (response.nextToken ?? pagination?.nextToken) as
+			| string
+			| undefined;
+		hasMore =
+			!!nextToken &&
+			items.length > 0 &&
+			(!maxResults || allItems.length < maxResults) &&
+			!searchCreditsExhausted(pagination);
 	}
 
 	return allItems;

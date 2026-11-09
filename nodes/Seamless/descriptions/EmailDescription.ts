@@ -31,7 +31,8 @@ const emailOperations: INodeProperties[] = [
 				name: 'Send',
 				value: 'send',
 				action: 'Send email',
-				description: 'Send an email immediately to a contact',
+				description:
+					'Send an email immediately to a contact. If a send limit was reached or the provider failed temporarily, the email is queued instead: status is SCHEDULED or RETRYING and it will send on its own, so do not send it again.',
 			},
 			{
 				name: 'Send Bulk',
@@ -44,7 +45,8 @@ const emailOperations: INodeProperties[] = [
 				name: 'Send Draft',
 				value: 'sendDraft',
 				action: 'Send email draft',
-				description: 'Send a previously created email draft',
+				description:
+					'Send a previously created email draft immediately. If a send limit was reached or the provider failed temporarily, the email is queued instead: status is SCHEDULED or RETRYING and it will send on its own, so do not send it again.',
 			},
 			{
 				name: 'Update Draft',
