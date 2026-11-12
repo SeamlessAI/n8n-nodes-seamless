@@ -44,6 +44,7 @@
 		"dev": "n8n-node dev",
 		"lint": "eslint && n8n-node lint",
 		"lint:fix": "eslint --fix && n8n-node lint --fix",
+		"check:public-text": "node scripts/check-public-text.mjs",
 		"refit": "refit",
 		"update": "refit up -i",
 		"wizard": "refit w",
