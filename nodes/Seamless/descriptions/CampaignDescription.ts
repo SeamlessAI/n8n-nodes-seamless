@@ -68,7 +68,7 @@ const campaignOperations: INodeProperties[] = [
 				value: 'getContacts',
 				action: 'Get campaign contacts',
 				description:
-					'Retrieve contacts in a campaign with engagement status and current step. Paginated by limit/offset; the server reports total and hasMore.',
+					'Retrieve contacts in a campaign with engagement status and current step. Paginated by an opaque cursor; the server reports total and pagination.nextCursor.',
 			},
 			{
 				name: 'Get Many',
@@ -368,21 +368,6 @@ const campaignFields: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Offset',
-		name: 'offset',
-		type: 'number',
-		default: 0,
-		description: 'Pagination offset (default 0)',
-		typeOptions: { minValue: 0 },
-		displayOptions: {
-			show: {
-				resource: ['campaign'],
-				operation: ['getMany'],
-				returnAll: [false],
-			},
-		},
-	},
-	{
 		displayName: 'Simplify',
 		name: 'simplify',
 		type: 'boolean',
@@ -412,21 +397,6 @@ const campaignFields: INodeProperties[] = [
 		default: 50,
 		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
-		displayOptions: {
-			show: {
-				resource: ['campaign'],
-				operation: ['getContacts'],
-				returnAll: [false],
-			},
-		},
-	},
-	{
-		displayName: 'Offset',
-		name: 'offset',
-		type: 'number',
-		default: 0,
-		description: 'Pagination offset (default 0)',
-		typeOptions: { minValue: 0 },
 		displayOptions: {
 			show: {
 				resource: ['campaign'],

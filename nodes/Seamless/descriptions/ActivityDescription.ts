@@ -13,7 +13,7 @@ const activityOperations: INodeProperties[] = [
 				value: 'getMany',
 				action: 'Get many activities',
 				description:
-					'Retrieve engagement activity events (opens, replies, bounces, calls). Paginated by limit/offset; the server reports total and hasMore.',
+					'Retrieve engagement activity events (opens, replies, bounces, calls). Paginated by an opaque cursor; the server reports total and pagination.nextCursor.',
 			},
 		],
 		default: 'getMany',
@@ -68,14 +68,6 @@ const activityFields: INodeProperties[] = [
 				name: 'contactId',
 				type: 'number',
 				default: 0,
-			},
-			{
-				displayName: 'Offset',
-				name: 'offset',
-				type: 'number',
-				default: 0,
-				description: 'Pagination offset (default 0)',
-				typeOptions: { minValue: 0 },
 			},
 			{
 				displayName: 'Search Text',
