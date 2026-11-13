@@ -47,21 +47,6 @@ const emailAccountFields: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Page',
-		name: 'page',
-		type: 'number',
-		default: 1,
-		description: 'Page number (default 1)',
-		typeOptions: { minValue: 1 },
-		displayOptions: {
-			show: {
-				resource: ['emailAccount'],
-				operation: ['getMany'],
-				returnAll: [false],
-			},
-		},
-	},
-	{
 		displayName: 'Search Text',
 		name: 'searchText',
 		type: 'string',

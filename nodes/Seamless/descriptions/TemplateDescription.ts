@@ -231,12 +231,12 @@ const templateFields: INodeProperties[] = [
 	},
 	// ------ Get Many ------
 	{
-		displayName: 'Page',
-		name: 'page',
-		type: 'number',
-		default: 1,
-		description: 'Page number (default 1)',
-		typeOptions: { minValue: 1 },
+		displayName: 'Return All',
+		name: 'returnAll',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to return all results or only up to a given limit',
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },
 		},
@@ -249,7 +249,11 @@ const templateFields: INodeProperties[] = [
 		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
-			show: { resource: ['template'], operation: ['getMany'] },
+			show: {
+				resource: ['template'],
+				operation: ['getMany'],
+				returnAll: [false],
+			},
 		},
 	},
 	{

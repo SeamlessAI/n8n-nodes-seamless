@@ -372,15 +372,6 @@ const taskFields: INodeProperties[] = [
 					'Filter tasks by campaign identifier (slug, not numeric ID)',
 			},
 			{
-				displayName: 'Offset',
-				name: 'offset',
-				type: 'number',
-				default: 0,
-				typeOptions: { minValue: 0 },
-				description:
-					'Pagination offset (only used when Return All is off)',
-			},
-			{
 				displayName: 'Sort Column',
 				name: 'sortColumn',
 				type: 'string',
