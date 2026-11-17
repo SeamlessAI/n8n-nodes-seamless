@@ -12,7 +12,7 @@ const emailAccountOperations: INodeProperties[] = [
 				name: 'Get Many',
 				value: 'getMany',
 				action: 'Get many email accounts',
-				description: 'Retrieve a list of connected email accounts',
+				description: 'Retrieve the email accounts in any state. Accounts with isActive true can send emails and campaigns; isActive is false when the account is disconnected, disabled, or its sign-in has expired.',
 			},
 		],
 		default: 'getMany',
