@@ -112,10 +112,8 @@ export class SeamlessTrigger implements INodeType {
 			toolName = 'get_activity_feed';
 			if (isManual) {
 				args.limit = 1;
-				args.offset = 0;
 			} else {
 				args.limit = 50;
-				args.offset = 0;
 			}
 		}
 

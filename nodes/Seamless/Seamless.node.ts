@@ -14,9 +14,7 @@ import {
 
 import {
 	seamlessMcpCall,
-	seamlessMcpCallAllPages,
-	seamlessMcpCallAllOffsets,
-	seamlessMcpSearchAll,
+	seamlessMcpCallAll,
 } from './GenericFunctions';
 
 import {
@@ -283,6 +281,15 @@ function dropZeroIds(obj: IDataObject, keys: string[]): void {
 	for (const k of keys) {
 		if (obj[k] === 0) delete obj[k];
 	}
+}
+
+/**
+ * `offset`, `page` and `nextToken` were superseded by the opaque `cursor`
+ * (SEAM-43545). Drop them from options saved by older workflows so they are
+ * never sent.
+ */
+function dropLegacyPagingKeys(obj: IDataObject): void {
+	for (const k of ['offset', 'page', 'nextToken']) delete obj[k];
 }
 
 const CAMPAIGN_STEP_AI_PROMPT_MAX_LENGTH = 10_000;
@@ -577,9 +584,8 @@ function foldSearchObjectFilters(body: IDataObject, cleaned: IDataObject): void 
  * Mirrors the MCP `search_contacts` handler (SEAM-43652).
  */
 const CONTACT_SEARCH_NON_FILTER_KEYS = [
-	'nextToken',
+	'cursor',
 	'limit',
-	'page',
 	'savedSearchId',
 	'companyNameSearchType',
 	'locationType',
@@ -661,6 +667,7 @@ function buildContactSearchBody(
 		}
 	}
 	foldSearchObjectFilters(body, cleaned);
+	dropLegacyPagingKeys(cleaned);
 	Object.assign(body, cleaned);
 	return body;
 }
@@ -688,12 +695,10 @@ async function executeContact(
 			);
 		}
 
-		return seamlessMcpSearchAll.call(
-			this,
-			'search_contacts',
-			body,
-			limit,
-		);
+		return seamlessMcpCallAll.call(this, 'search_contacts', body, {
+			batchSize: 100,
+			maxResults: limit,
+		});
 	}
 
 	if (operation === 'research') {
@@ -765,14 +770,13 @@ async function executeContact(
 			if (arr.length) args.orgIds = arr.join(',');
 			delete cleaned.orgIds;
 		}
+		dropLegacyPagingKeys(cleaned);
 		Object.assign(args, cleaned);
 
 		if (returnAll) {
-			return seamlessMcpCallAllPages.call(
-				this,
-				'get_my_contacts',
-				args,
-			);
+			return seamlessMcpCallAll.call(this, 'get_my_contacts', args, {
+				batchSize: 100,
+			});
 		}
 		args.limit = this.getNodeParameter('limit', i) as number;
 		const response = await seamlessMcpCall.call(
@@ -868,6 +872,7 @@ function buildCompanySearchBody(
 		}
 	}
 	foldSearchObjectFilters(body, cleaned);
+	dropLegacyPagingKeys(cleaned);
 	Object.assign(body, cleaned);
 	return body;
 }
@@ -884,12 +889,10 @@ async function executeCompany(
 			: (this.getNodeParameter('limit', i) as number);
 		const body = buildCompanySearchBody(this, i);
 
-		return seamlessMcpSearchAll.call(
-			this,
-			'search_companies',
-			body,
-			limit,
-		);
+		return seamlessMcpCallAll.call(this, 'search_companies', body, {
+			batchSize: 100,
+			maxResults: limit,
+		});
 	}
 
 	if (operation === 'research') {
@@ -940,14 +943,13 @@ async function executeCompany(
 			if (arr.length) args.orgIds = arr.join(',');
 			delete cleaned.orgIds;
 		}
+		dropLegacyPagingKeys(cleaned);
 		Object.assign(args, cleaned);
 
 		if (returnAll) {
-			return seamlessMcpCallAllPages.call(
-				this,
-				'get_my_companies',
-				args,
-			);
+			return seamlessMcpCallAll.call(this, 'get_my_companies', args, {
+				batchSize: 100,
+			});
 		}
 		args.limit = this.getNodeParameter('limit', i) as number;
 		const response = await seamlessMcpCall.call(
@@ -1050,7 +1052,7 @@ async function executeLocation(
 // ─── Autopilot ──────────────────────────────────────────────────────────────
 
 /** Paging args the MCP `start_autopilot` schema does not accept. */
-const AUTOPILOT_EXCLUDED_SEARCH_KEYS = ['nextToken', 'page', 'limit'];
+const AUTOPILOT_EXCLUDED_SEARCH_KEYS = ['cursor', 'nextToken', 'page', 'limit'];
 
 async function executeAutopilot(
 	this: IExecuteFunctions,
@@ -1222,16 +1224,12 @@ async function executeCampaign(
 		if (status.length) args.status = status;
 
 		if (returnAll) {
-			const items = await seamlessMcpCallAllOffsets.call(
-				this,
-				'list_campaigns',
-				args,
-				50,
-			);
+			const items = await seamlessMcpCallAll.call(this, 'list_campaigns', args, {
+				batchSize: 50,
+			});
 			return simplifyResults(items, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
 		}
 		args.limit = this.getNodeParameter('limit', i, 50) as number;
-		args.offset = this.getNodeParameter('offset', i, 0) as number;
 		const response = await seamlessMcpCall.call(this, 'list_campaigns', args);
 		const items = (response.data || response) as IDataObject | IDataObject[];
 		return simplifyResults(items, CAMPAIGN_SIMPLIFIED_KEYS, simplify);
@@ -1336,15 +1334,11 @@ async function executeCampaign(
 		if (searchText) args.searchText = searchText;
 
 		if (returnAll) {
-			return seamlessMcpCallAllOffsets.call(
-				this,
-				'list_campaign_contacts',
-				args,
-				50,
-			);
+			return seamlessMcpCallAll.call(this, 'list_campaign_contacts', args, {
+				batchSize: 50,
+			});
 		}
 		args.limit = this.getNodeParameter('limit', i, 25) as number;
-		args.offset = this.getNodeParameter('offset', i, 0) as number;
 		const response = await seamlessMcpCall.call(
 			this,
 			'list_campaign_contacts',
@@ -1560,10 +1554,8 @@ async function executeTemplate(
 	}
 	if (operation === 'getMany') {
 		const simplify = this.getNodeParameter('simplify', i, true) as boolean;
-		const args: IDataObject = {
-			page: this.getNodeParameter('page', i, 1) as number,
-			limit: this.getNodeParameter('limit', i, 15) as number,
-		};
+		const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
+		const args: IDataObject = {};
 		const searchText = this.getNodeParameter('searchText', i, '') as string;
 		if (searchText) args.searchText = searchText;
 		const type = this.getNodeParameter('type', i, '') as string;
@@ -1575,6 +1567,13 @@ async function executeTemplate(
 		) as boolean;
 		if (includeStats) args.includeStats = true;
 
+		if (returnAll) {
+			const allItems = await seamlessMcpCallAll.call(this, 'list_templates', args, {
+				batchSize: 50,
+			});
+			return simplifyResults(allItems, TEMPLATE_SIMPLIFIED_KEYS, simplify) as IDataObject[];
+		}
+		args.limit = this.getNodeParameter('limit', i, 15) as number;
 		const response = await seamlessMcpCall.call(
 			this,
 			'list_templates',
@@ -1784,19 +1783,16 @@ async function executeTask(
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
 		const cleanedFilters = cleanObj(filters);
 		dropZeroIds(cleanedFilters, ['campaignId']);
+		dropLegacyPagingKeys(cleanedFilters);
 		Object.assign(args, cleanedFilters);
 
 		if (returnAll) {
-			const allItems = await seamlessMcpCallAllOffsets.call(
-				this,
-				'list_tasks',
-				args,
-				50,
-			);
+			const allItems = await seamlessMcpCallAll.call(this, 'list_tasks', args, {
+				batchSize: 50,
+			});
 			return simplifyResults(allItems, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject[];
 		}
 		args.limit = this.getNodeParameter('limit', i, 25) as number;
-		if (args.offset === undefined) args.offset = 0;
 		const response = await seamlessMcpCall.call(this, 'list_tasks', args);
 		const items = (response.data || response) as IDataObject[];
 		return simplifyResults(items, TASK_SIMPLIFIED_KEYS, simplify) as IDataObject[];
@@ -1892,18 +1888,16 @@ async function executeActivity(
 		const returnAll = this.getNodeParameter('returnAll', i) as boolean;
 		const args: IDataObject = {};
 		const filters = this.getNodeParameter('filters', i, {}) as IDataObject;
-		Object.assign(args, cleanObj(filters));
+		const activityFilters = cleanObj(filters);
+		dropLegacyPagingKeys(activityFilters);
+		Object.assign(args, activityFilters);
 
 		if (returnAll) {
-			return seamlessMcpCallAllOffsets.call(
-				this,
-				'get_activity_feed',
-				args,
-				50,
-			);
+			return seamlessMcpCallAll.call(this, 'get_activity_feed', args, {
+				batchSize: 50,
+			});
 		}
 		args.limit = this.getNodeParameter('limit', i, 25) as number;
-		if (args.offset === undefined) args.offset = 0;
 		const response = await seamlessMcpCall.call(
 			this,
 			'get_activity_feed',
@@ -1928,14 +1922,11 @@ async function executeEmailAccount(
 		if (searchText) args.searchText = searchText;
 
 		if (returnAll) {
-			return seamlessMcpCallAllPages.call(
-				this,
-				'list_email_accounts',
-				args,
-			);
+			return seamlessMcpCallAll.call(this, 'list_email_accounts', args, {
+				batchSize: 50,
+			});
 		}
 		args.limit = this.getNodeParameter('limit', i, 25) as number;
-		args.page = this.getNodeParameter('page', i, 1) as number;
 		const response = await seamlessMcpCall.call(
 			this,
 			'list_email_accounts',
@@ -1954,9 +1945,14 @@ async function executeEmailFooter(
 	i: number
 ): Promise<IDataObject | IDataObject[]> {
 	if (operation === 'getMany') {
+		const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
+		if (returnAll) {
+			return seamlessMcpCallAll.call(this, 'list_email_footers', {}, {
+				batchSize: 50,
+			});
+		}
 		const args: IDataObject = {
 			limit: this.getNodeParameter('limit', i, 25) as number,
-			page: this.getNodeParameter('page', i, 1) as number,
 		};
 		const response = await seamlessMcpCall.call(
 			this,

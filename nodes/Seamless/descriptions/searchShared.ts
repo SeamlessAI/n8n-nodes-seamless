@@ -9,7 +9,7 @@ export const SEARCH_LOCATIONS_MAX = 10;
 const SEARCH_RESULT_CONTROL_FIELDS = new Set(['returnAll', 'limit', 'simplify']);
 
 /** Paging args the MCP Autopilot schema strips from the search filters. */
-const SEARCH_PAGING_FIELDS = new Set(['nextToken', 'page', 'limit']);
+const SEARCH_PAGING_FIELDS = new Set(['limit']);
 
 /**
  * Reuse a resource's Search filter fields under another resource/operation

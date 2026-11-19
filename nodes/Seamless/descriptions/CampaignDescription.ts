@@ -68,7 +68,7 @@ const campaignOperations: INodeProperties[] = [
 				value: 'getContacts',
 				action: 'Get campaign contacts',
 				description:
-					'Retrieve contacts in a campaign with engagement status and current step. Paginated by limit/offset; the server reports total and hasMore.',
+					'Retrieve contacts in a campaign with engagement status and current step. Paginated by an opaque cursor; the server reports total and pagination.nextCursor.',
 			},
 			{
 				name: 'Get Many',
@@ -202,7 +202,7 @@ const campaignFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Comma-separated email account IDs to link as sending addresses. Required before adding auto-email or manual-email steps.',
+					'Comma-separated email account IDs to link as sending addresses. Required before adding auto-email or manual-email steps. An account whose sign-in has expired is rejected with expiredToken.',
 			},
 			{
 				displayName: 'Is Daily Task Limit Enabled',
@@ -229,7 +229,7 @@ const campaignFields: INodeProperties[] = [
 				"This campaign's daily send limit on linked email accounts. Accounts not listed keep their current limit; unlinked accounts are rejected (link them via Email Account IDs first). Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
 			),
 			campaignDailyTaskLimitsField(
-				"Per-day task limits: how many contacts may become due on each cadence day. Due Day must match a step and Daily Task Limit must be at least the number of steps on that day; a day with an email step cannot exceed the campaign's dailySendCapacity. Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
+				"Per-day task limits: how many contacts may become due on each cadence day. Due Day must match a step and Daily Task Limit must be at least the number of steps on that day; a day with an email step cannot exceed the summed daily send limit of every linked account, connected or not (dailySendCapacity counts only connected ones). Can be changed in any campaign state and takes effect at once. Requires the campaign send limits feature.",
 			),
 			{
 				displayName: 'Email Account IDs',
@@ -237,7 +237,7 @@ const campaignFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Comma-separated email account IDs to link for sending. Accounts can be added in any state; removing one from an active campaign fails with 422 campaignActive — pause the campaign first, then resume it.',
+					'Comma-separated email account IDs to link for sending. An account whose sign-in has expired is rejected with expiredToken unless it is already linked. Accounts can be added in any state; removing one from an active campaign fails with 422 campaignActive — pause the campaign first, then resume it.',
 			},
 			{
 				displayName: 'Is Daily Task Limit Enabled',
@@ -368,21 +368,6 @@ const campaignFields: INodeProperties[] = [
 		},
 	},
 	{
-		displayName: 'Offset',
-		name: 'offset',
-		type: 'number',
-		default: 0,
-		description: 'Pagination offset (default 0)',
-		typeOptions: { minValue: 0 },
-		displayOptions: {
-			show: {
-				resource: ['campaign'],
-				operation: ['getMany'],
-				returnAll: [false],
-			},
-		},
-	},
-	{
 		displayName: 'Simplify',
 		name: 'simplify',
 		type: 'boolean',
@@ -412,21 +397,6 @@ const campaignFields: INodeProperties[] = [
 		default: 50,
 		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
-		displayOptions: {
-			show: {
-				resource: ['campaign'],
-				operation: ['getContacts'],
-				returnAll: [false],
-			},
-		},
-	},
-	{
-		displayName: 'Offset',
-		name: 'offset',
-		type: 'number',
-		default: 0,
-		description: 'Pagination offset (default 0)',
-		typeOptions: { minValue: 0 },
 		displayOptions: {
 			show: {
 				resource: ['campaign'],

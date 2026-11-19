@@ -133,7 +133,7 @@ const templateFields: INodeProperties[] = [
 				default: '',
 				typeOptions: { rows: 5 },
 				description:
-					'Email body HTML. Supports curly-brace template variables like {first_name}, {company}; unknown tags are not rejected and reach the recipient as literal text.',
+					'Email body. Static templates: HTML with square-bracket merge tags such as [first_name], [company], [title]; saving a tag the account has no variable for is rejected with an error listing the tags. AI prompt templates: plain-text instructions with no merge tags.',
 			},
 			{
 				displayName: 'Content Category',
@@ -165,7 +165,7 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Email subject. Supports curly-brace template variables like {first_name}, {company}.',
+					'Email subject. Supports square-bracket merge tags such as [first_name], [company]; unknown tags are rejected on save.',
 			},
 			{
 				displayName: 'Type',
@@ -193,6 +193,8 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				typeOptions: { rows: 5 },
+				description:
+					'Email body. Static templates: HTML with square-bracket merge tags such as [first_name], [company]; saving a tag the account has no variable for is rejected with an error listing the tags. AI prompt templates: plain-text instructions with no merge tags.',
 			},
 			{
 				displayName: 'Content Category',
@@ -231,12 +233,12 @@ const templateFields: INodeProperties[] = [
 	},
 	// ------ Get Many ------
 	{
-		displayName: 'Page',
-		name: 'page',
-		type: 'number',
-		default: 1,
-		description: 'Page number (default 1)',
-		typeOptions: { minValue: 1 },
+		displayName: 'Return All',
+		name: 'returnAll',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to return all results or only up to a given limit',
 		displayOptions: {
 			show: { resource: ['template'], operation: ['getMany'] },
 		},
@@ -249,7 +251,11 @@ const templateFields: INodeProperties[] = [
 		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
 		displayOptions: {
-			show: { resource: ['template'], operation: ['getMany'] },
+			show: {
+				resource: ['template'],
+				operation: ['getMany'],
+				returnAll: [false],
+			},
 		},
 	},
 	{

@@ -53,7 +53,7 @@ const campaignStepAiPromptField: INodeProperties = {
 	default: '',
 	typeOptions: { rows: 5 },
 	description:
-		'Plain-text instructions (max 10,000 characters) the AI runs for EACH contact when the step executes, producing unique content per contact instead of a fixed template. Describe the goal, value proposition, tone, call to action and length; do not write the message itself and do not include HTML. Do not include merge tags or variables such as {first_name} or {company} — the AI receives the contact\'s full profile and personalizes from it; say "address them by first name" rather than using a tag. For email steps the AI writes both the subject and the body. Cannot be combined with Template ID or Template Data. Each per-contact generation consumes AI credits.',
+		'Plain-text instructions (max 10,000 characters) the AI runs for EACH contact when the step executes, producing unique content per contact instead of a fixed template. Describe the goal, value proposition, tone, call to action and length; do not write the message itself and do not include HTML. Do not include merge tags or variables such as [first_name] or [company] — the AI receives the contact\'s full profile and personalizes from it; say "address them by first name" rather than using a tag. For email steps the AI writes both the subject and the body. Cannot be combined with Template ID or Template Data. Each per-contact generation consumes AI credits.',
 };
 
 const campaignStepTemplateDataField: INodeProperties = {
@@ -74,7 +74,7 @@ const campaignStepTemplateDataField: INodeProperties = {
 					type: 'string',
 					default: '',
 					description:
-						'Email subject line. Supports curly-brace template variables like {first_name}, {company}; unknown tags are not rejected and reach the recipient as literal text.',
+						'Email subject line. Supports square-bracket merge tags such as [first_name], [company]; unknown tags are rejected on save.',
 				},
 				{
 					displayName: 'Template',
@@ -83,7 +83,7 @@ const campaignStepTemplateDataField: INodeProperties = {
 					default: '',
 					typeOptions: { rows: 5 },
 					description:
-						'Email body HTML content. Supports curly-brace template variables like {first_name}, {company}, {title}; unknown tags are not rejected and reach the recipient as literal text.',
+						'Email body HTML content. Supports square-bracket merge tags such as [first_name], [company], [title]; unknown tags are rejected on save.',
 				},
 			],
 		},

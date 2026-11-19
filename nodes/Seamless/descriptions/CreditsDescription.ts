@@ -12,7 +12,7 @@ const creditsOperations: INodeProperties[] = [
 				name: 'Get Credits',
 				value: 'getCredits',
 				action: 'Get credits',
-				description: 'Retrieve the current credit balance and usage',
+				description: 'Retrieve remaining credits by credit category, each with when it next refreshes (null if it does not). Balances can be fractional, up to 3 decimal places.',
 			},
 		],
 		default: 'getCredits',

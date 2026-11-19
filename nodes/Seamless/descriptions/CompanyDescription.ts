@@ -328,24 +328,6 @@ const companyFields: INodeProperties[] = [
 				],
 			},
 			{
-				displayName: 'Next Token',
-				name: 'nextToken',
-				type: 'string',
-				typeOptions: { password: true },
-				default: '',
-				description:
-					'Pagination token from a previous search response',
-			},
-			{
-				displayName: 'Page',
-				name: 'page',
-				type: 'number',
-				default: 1,
-				typeOptions: { minValue: 1 },
-				description:
-					'1-based page number, for jumping to a specific offset. Prefer Next Token for sequential paging.',
-			},
-			{
 				displayName: 'Saved Search ID',
 				name: 'savedSearchId',
 				type: 'string',
@@ -454,14 +436,6 @@ const companyFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Comma-separated org IDs to filter by',
-			},
-			{
-				displayName: 'Page',
-				name: 'page',
-				type: 'number',
-				default: 1,
-				typeOptions: { minValue: 1 },
-				description: 'Page number (default 1)',
 			},
 		],
 	},
