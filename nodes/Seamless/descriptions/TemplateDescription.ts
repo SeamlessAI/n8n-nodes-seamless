@@ -133,7 +133,7 @@ const templateFields: INodeProperties[] = [
 				default: '',
 				typeOptions: { rows: 5 },
 				description:
-					'Email body HTML. Supports curly-brace template variables like {first_name}, {company}; unknown tags are not rejected and reach the recipient as literal text.',
+					'Email body. Static templates: HTML with square-bracket merge tags such as [first_name], [company], [title]; saving a tag the account has no variable for is rejected with an error listing the tags. AI prompt templates: plain-text instructions with no merge tags.',
 			},
 			{
 				displayName: 'Content Category',
@@ -165,7 +165,7 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Email subject. Supports curly-brace template variables like {first_name}, {company}.',
+					'Email subject. Supports square-bracket merge tags such as [first_name], [company]; unknown tags are rejected on save.',
 			},
 			{
 				displayName: 'Type',
@@ -193,6 +193,8 @@ const templateFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				typeOptions: { rows: 5 },
+				description:
+					'Email body. Static templates: HTML with square-bracket merge tags such as [first_name], [company]; saving a tag the account has no variable for is rejected with an error listing the tags. AI prompt templates: plain-text instructions with no merge tags.',
 			},
 			{
 				displayName: 'Content Category',
