@@ -12,7 +12,7 @@ This repo is public (MIT) and reviewed by n8n. The Seamless MCP server source is
 - The private Seamless repository's name, or any path or file name from it (`modules/...`, `packages/...`, `*.js` source files).
 - Commit SHAs from any private repository. SHAs of this repo's own commits are fine.
 - Jira keys or links (`SEAM-…`, `SPR-…`, `TC-…`, `*.atlassian.net`), including in commit subjects and branch names.
-- Server internals: function, class, service, handler, constant, feature-flag or environment-variable names (for example `OrgApi.*`, `publicAPI.*`, helper or validator names).
+- Server internals: function, class, service, handler, constant, feature-flag or environment-variable names (for example API handler, helper or validator names).
 - Internal hostnames, dev or staging URLs, dashboards, internal test-account names.
 - People's internal notes, Slack or Jira discussion, customer or contact data, employee emails. Use fake data such as `jane@example.com` and `Example Co` in examples.
 - Secrets, tokens or API keys.
@@ -55,6 +55,8 @@ Write the PR title and body, comment, or commit message to a file and run:
 ```sh
 npm run check:public-text -- <file>
 ```
+
+Patterns that would themselves leak private names (the private repo's name and paths, server identifiers) are not in the script. They come from the `PUBLIC_TEXT_PATTERNS` secret, one regex per line, which CI and automations set in the environment. Never write them into this repo.
 
 CI runs the same check on PR titles, bodies and commit messages. It only catches patterns, so the rules above still apply to what it cannot detect, such as internal names and notes.
 

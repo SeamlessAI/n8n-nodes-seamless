@@ -10,6 +10,10 @@
  *   node scripts/check-public-text.mjs <file>...   check files
  *   node scripts/check-public-text.mjs < text.md    check stdin
  *
+ * Patterns that would leak private names if published here (private repo
+ * name and paths, server identifiers) come from PUBLIC_TEXT_PATTERNS, one
+ * regex per line.
+ *
  * Exits 1 when anything is found.
  */
 
@@ -18,12 +22,6 @@ import { readFileSync } from 'node:fs';
 const RULES = [
 	{ name: 'Jira key', pattern: /\b(?:SEAM|SPR|TC)-\d+\b/g },
 	{ name: 'Atlassian link', pattern: /\b[\w-]+\.atlassian\.net\b/gi },
-	{ name: 'private repo name', pattern: /\bSeamlessAI\/seamless\b(?!-)/gi },
-	{
-		name: 'private repo path',
-		pattern:
-			/\b(?:modules\/(?:agents|configs|core|db|node-services|react-core|test-utils|types|ui)|packages\/(?:admin|client|contrib-network|docs|seamless-ai|seamless-bot|server-mcp))\//g,
-	},
 	{
 		name: 'upstream commit SHA',
 		// Hyphen lookarounds skip public names like n8n-nodes-seamless and @seamless-oss.
@@ -31,8 +29,29 @@ const RULES = [
 			/(?<![\w-])(?:seamless|upstream|source)(?![\w-])[^\n]{0,60}?\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/gi,
 		ignore: /\bgithub\.com\/SeamlessAI\/n8n-nodes-seamless\/\S*/gi,
 	},
-	{ name: 'internal server identifier', pattern: /\b(?:OrgApi|publicAPI)\.\w+/g },
+	...privateRules(process.env.PUBLIC_TEXT_PATTERNS),
 ];
+
+function privateRules(source = '') {
+	if (!source.trim()) {
+		console.warn(
+			'PUBLIC_TEXT_PATTERNS is not set; private name, path and identifier checks skipped.',
+		);
+		return [];
+	}
+	return source.split('\n').reduce((rules, line, index) => {
+		const trimmed = line.trim();
+		if (!trimmed) return rules;
+		try {
+			rules.push({ name: 'private pattern', pattern: new RegExp(trimmed, 'gi') });
+		} catch {
+			// CI logs are public, so never echo the pattern itself.
+			console.error(`PUBLIC_TEXT_PATTERNS line ${index + 1} is not a valid regex.`);
+			process.exit(2);
+		}
+		return rules;
+	}, []);
+}
 
 function check(label, text) {
 	const findings = [];
