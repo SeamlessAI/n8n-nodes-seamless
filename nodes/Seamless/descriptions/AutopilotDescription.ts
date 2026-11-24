@@ -43,7 +43,7 @@ const autopilotOperations: INodeProperties[] = [
 				value: 'start',
 				action: 'Start an autopilot',
 				description:
-					`Start a contact or company Autopilot: a long-running automated search that researches every matching record in the background. Consumes credits upfront for every requested result; unused credits are restored when the run finishes or is cancelled. Takes the same filters as Contact/Company Search (or a Saved Search ID); the total from that search is the ceiling for Results to Research (caps ${AUTOPILOT_MAX_CONTACT_RESULTS.toLocaleString('en-US')} contacts / ${AUTOPILOT_MAX_COMPANY_RESULTS.toLocaleString('en-US')} companies). One Autopilot per type runs at a time. Returns taskId and automatedSearchId immediately; poll with Get Status and download with Get Results URL.`,
+					`Start a contact or company Autopilot: a long-running automated search that researches every matching record in the background. Consumes credits upfront for every requested result: a contact run charges each result the contact research price for the account's Contact Data setting (see Contact Research), and a company run 1 credit per result. Unused credits are restored when the run finishes or is cancelled. Takes the same filters as Contact/Company Search (or a Saved Search ID); the total from that search is the ceiling for Results to Research (caps ${AUTOPILOT_MAX_CONTACT_RESULTS.toLocaleString('en-US')} contacts / ${AUTOPILOT_MAX_COMPANY_RESULTS.toLocaleString('en-US')} companies). One Autopilot per type runs at a time. Returns taskId and automatedSearchId immediately; poll with Get Status and download with Get Results URL.`,
 			},
 		],
 		default: 'start',

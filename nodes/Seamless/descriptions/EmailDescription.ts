@@ -394,7 +394,7 @@ const emailFields: INodeProperties[] = [
 				default: '',
 				typeOptions: { rows: 5 },
 				description:
-					'Email body HTML (required if no Template ID). Supports template variables.',
+					'Email body HTML (required if no Template ID). Supports square-bracket merge tags such as [first_name], [company]; unknown tags are not checked and reach the recipient as literal text.',
 			},
 			{
 				displayName: 'Idempotency Key',
@@ -417,7 +417,7 @@ const emailFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description:
-					'Email subject (required if no Template ID). Supports template variables.',
+					'Email subject (required if no Template ID). Supports square-bracket merge tags such as [first_name], [company]; unknown tags are not checked and reach the recipient as literal text.',
 			},
 			{
 				displayName: 'Template ID',

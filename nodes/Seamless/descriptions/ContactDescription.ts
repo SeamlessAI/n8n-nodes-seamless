@@ -459,24 +459,6 @@ const contactFields: INodeProperties[] = [
 				],
 			},
 			{
-				displayName: 'Next Token',
-				name: 'nextToken',
-				type: 'string',
-				typeOptions: { password: true },
-				default: '',
-				description:
-					'Pagination token from a previous search response',
-			},
-			{
-				displayName: 'Page',
-				name: 'page',
-				type: 'number',
-				default: 1,
-				typeOptions: { minValue: 1 },
-				description:
-					'1-based page number, for jumping to a specific offset. Prefer Next Token for sequential paging.',
-			},
-			{
 				displayName: 'Past Company Names',
 				name: 'pastCompanyNames',
 				type: 'string',
@@ -743,14 +725,6 @@ const contactFields: INodeProperties[] = [
 				type: 'string',
 				default: '',
 				description: 'Comma-separated org IDs to filter by',
-			},
-			{
-				displayName: 'Page',
-				name: 'page',
-				type: 'number',
-				default: 1,
-				typeOptions: { minValue: 1 },
-				description: 'Page number (default 1)',
 			},
 		],
 	},

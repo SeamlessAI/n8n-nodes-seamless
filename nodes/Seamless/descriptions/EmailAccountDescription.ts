@@ -12,7 +12,7 @@ const emailAccountOperations: INodeProperties[] = [
 				name: 'Get Many',
 				value: 'getMany',
 				action: 'Get many email accounts',
-				description: 'Retrieve a list of connected email accounts',
+				description: 'Retrieve the email accounts in any state. Accounts with isActive true can send emails and campaigns; isActive is false when the account is disconnected, disabled, or its sign-in has expired.',
 			},
 		],
 		default: 'getMany',
@@ -38,21 +38,6 @@ const emailAccountFields: INodeProperties[] = [
 		default: 50,
 		description: 'Max number of results to return',
 		typeOptions: { minValue: 1, maxValue: 50 },
-		displayOptions: {
-			show: {
-				resource: ['emailAccount'],
-				operation: ['getMany'],
-				returnAll: [false],
-			},
-		},
-	},
-	{
-		displayName: 'Page',
-		name: 'page',
-		type: 'number',
-		default: 1,
-		description: 'Page number (default 1)',
-		typeOptions: { minValue: 1 },
 		displayOptions: {
 			show: {
 				resource: ['emailAccount'],

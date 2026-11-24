@@ -216,86 +216,6 @@ async function seamlessMcpCall(
 }
 
 /**
- * Auto-paginate through page-based MCP tools (page + limit).
- */
-async function seamlessMcpCallAllPages(
-	this: IExecuteFunctions | IPollFunctions,
-	toolName: string,
-	args?: IDataObject,
-	dataKey?: string,
-): Promise<IDataObject[]> {
-	const allItems: IDataObject[] = [];
-	let page = 1;
-	const limit = 100;
-	let hasMore = true;
-
-	while (hasMore) {
-		const response = await seamlessMcpCall.call(
-			this,
-			toolName,
-			{ ...args, page, limit },
-		);
-		const items = (dataKey ? response[dataKey] : response.data) as
-			| IDataObject[]
-			| undefined;
-
-		if (Array.isArray(items) && items.length > 0) {
-			allItems.push(...items);
-			page++;
-			hasMore = items.length === limit;
-		} else {
-			hasMore = false;
-		}
-	}
-
-	return allItems;
-}
-
-/**
- * Auto-paginate through offset-based MCP tools (offset + limit).
- * Stops on `pagination.hasMore === false` when the tool reports it
- * (list_campaigns, list_campaign_contacts, get_activity_feed); otherwise
- * falls back to a short page as the end signal.
- */
-async function seamlessMcpCallAllOffsets(
-	this: IExecuteFunctions | IPollFunctions,
-	toolName: string,
-	args: IDataObject,
-	batchSize: number,
-	dataKey?: string,
-): Promise<IDataObject[]> {
-	const allItems: IDataObject[] = [];
-	let offset = 0;
-	let hasMore = true;
-
-	while (hasMore) {
-		const response = await seamlessMcpCall.call(
-			this,
-			toolName,
-			{ ...args, limit: batchSize, offset },
-		);
-		const items = (dataKey ? response[dataKey] : (response.data || response)) as
-			| IDataObject[]
-			| undefined;
-
-		if (Array.isArray(items) && items.length > 0) {
-			allItems.push(...items);
-			offset += items.length;
-			const reportedHasMore = (response.pagination as IDataObject | undefined)
-				?.hasMore;
-			hasMore =
-				typeof reportedHasMore === 'boolean'
-					? reportedHasMore
-					: items.length === batchSize;
-		} else {
-			hasMore = false;
-		}
-	}
-
-	return allItems;
-}
-
-/**
  * Whether a charged search page exhausted the caller's credits (SEAM-44181).
  * The next page would be rejected with `insufficientCredits`, so stop paging
  * and keep the rows already paid for. Uncharged pages (free-api-search beta,
@@ -314,50 +234,47 @@ function searchCreditsExhausted(pagination: IDataObject | undefined): boolean {
 }
 
 /**
- * Auto-paginate through cursor-based MCP search tools (nextToken + limit).
- * The cursor lives under `pagination.nextToken` in structuredContent; a
- * top-level `nextToken` is still honored for older servers.
+ * Auto-paginate any cursor-paged MCP tool (`cursor` in, `pagination.nextCursor` out).
+ * `limit` is sent on the first call only: the cursor carries the page size and
+ * the server rejects a different `limit` alongside it. The same filters are
+ * resent on every call, as a cursor is bound to them. A missing or null
+ * `nextCursor` ends paging; so does an empty page, a spent credit balance
+ * (charged search pages), or reaching `maxResults`.
  */
-async function seamlessMcpSearchAll(
-	this: IExecuteFunctions,
+async function seamlessMcpCallAll(
+	this: IExecuteFunctions | IPollFunctions,
 	toolName: string,
-	body: IDataObject,
-	maxResults?: number,
+	args: IDataObject,
+	options: { batchSize: number; maxResults?: number },
 ): Promise<IDataObject[]> {
+	const { batchSize, maxResults } = options;
 	const allItems: IDataObject[] = [];
-	let nextToken: string | undefined;
+	let cursor: string | undefined;
 	let hasMore = true;
 
 	while (hasMore) {
-		const perPage = maxResults
-			? Math.min(maxResults - allItems.length, 100)
-			: 100;
-		const args: IDataObject = { ...body, limit: perPage };
-		if (nextToken) {
-			args.nextToken = nextToken;
-		}
+		const pageArgs: IDataObject = cursor
+			? { ...args, cursor }
+			: {
+					...args,
+					limit: maxResults ? Math.min(maxResults, batchSize) : batchSize,
+				};
 
-		const response = await seamlessMcpCall.call(this, toolName, args);
+		const response = await seamlessMcpCall.call(this, toolName, pageArgs);
 		const items = (response.data || []) as IDataObject[];
 		allItems.push(...items);
 
 		const pagination = response.pagination as IDataObject | undefined;
-		nextToken = (response.nextToken ?? pagination?.nextToken) as
-			| string
-			| undefined;
+		const nextCursor = pagination?.nextCursor;
+		cursor = typeof nextCursor === 'string' && nextCursor ? nextCursor : undefined;
 		hasMore =
-			!!nextToken &&
+			!!cursor &&
 			items.length > 0 &&
 			(!maxResults || allItems.length < maxResults) &&
 			!searchCreditsExhausted(pagination);
 	}
 
-	return allItems;
+	return maxResults ? allItems.slice(0, maxResults) : allItems;
 }
 
-export {
-	seamlessMcpCall,
-	seamlessMcpCallAllPages,
-	seamlessMcpCallAllOffsets,
-	seamlessMcpSearchAll,
-};
+export { seamlessMcpCall, seamlessMcpCallAll };
