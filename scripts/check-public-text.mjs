@@ -26,8 +26,10 @@ const RULES = [
 	},
 	{
 		name: 'upstream commit SHA',
+		// Hyphen lookarounds skip public names like n8n-nodes-seamless and @seamless-oss.
 		pattern:
-			/\b(?:seamless|upstream|source)\b[^\n]{0,60}?\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/gi,
+			/(?<![\w-])(?:seamless|upstream|source)(?![\w-])[^\n]{0,60}?\b(?=[0-9a-f]*\d)(?=[0-9a-f]*[a-f])[0-9a-f]{7,40}\b/gi,
+		ignore: /\bgithub\.com\/SeamlessAI\/n8n-nodes-seamless\/\S*/gi,
 	},
 	{ name: 'internal server identifier', pattern: /\b(?:OrgApi|publicAPI)\.\w+/g },
 ];
@@ -35,8 +37,9 @@ const RULES = [
 function check(label, text) {
 	const findings = [];
 	text.split('\n').forEach((line, index) => {
-		for (const { name, pattern } of RULES) {
-			for (const match of line.matchAll(pattern)) {
+		for (const { name, pattern, ignore } of RULES) {
+			const target = ignore ? line.replace(ignore, ' ') : line;
+			for (const match of target.matchAll(pattern)) {
 				findings.push(`${label}:${index + 1}: ${name}: ${match[0]}`);
 			}
 		}
