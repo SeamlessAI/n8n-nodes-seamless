@@ -22,7 +22,7 @@ const companyOperations: INodeProperties[] = [
 				value: 'pollResearch',
 				action: 'Poll company research results',
 				description:
-					'Check the status of a pending research request (missing, researching, done, or error). Done results carry the enriched company.',
+					'Check the status of a pending research request. Keep polling while any result is researching. Final statuses: done, error, or missing. Done results carry the enriched company.',
 			},
 			{
 				name: 'Research',
