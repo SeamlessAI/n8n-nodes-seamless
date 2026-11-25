@@ -1007,6 +1007,23 @@ async function executeList(
 		const id = extractRlId(this, 'listId', i);
 		return seamlessMcpCall.call(this, 'get_lists', { listId: id });
 	}
+	if (operation === 'getContacts') {
+		const args: IDataObject = { listId: extractRlId(this, 'listId', i) };
+		const returnAll = this.getNodeParameter('returnAll', i, false) as boolean;
+
+		if (returnAll) {
+			return seamlessMcpCallAll.call(this, 'get_list_contacts', args, {
+				batchSize: 100,
+			});
+		}
+		args.limit = this.getNodeParameter('limit', i, 50) as number;
+		const response = await seamlessMcpCall.call(
+			this,
+			'get_list_contacts',
+			args,
+		);
+		return (response.data || response) as IDataObject[];
+	}
 	if (operation === 'getMany') {
 		return seamlessMcpCall.call(this, 'get_lists');
 	}

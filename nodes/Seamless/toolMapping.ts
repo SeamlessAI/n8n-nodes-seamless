@@ -22,6 +22,7 @@ export const TOOL_MAP: Record<string, Record<string, string>> = {
 	list: {
 		create: 'create_list',
 		get: 'get_lists',
+		getContacts: 'get_list_contacts',
 		getMany: 'get_lists',
 		update: 'update_list',
 		delete: 'delete_list',

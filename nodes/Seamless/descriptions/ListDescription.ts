@@ -28,6 +28,13 @@ const listOperations: INodeProperties[] = [
 				description: 'Retrieve a single contact list by ID',
 			},
 			{
+				name: 'Get Contacts',
+				value: 'getContacts',
+				action: 'Get list contacts',
+				description:
+					'Retrieve the saved contacts that belong to a contact list, with contactId, name, title, and company for each member. Paginated by an opaque cursor; the server reports total and pagination.nextCursor.',
+			},
+			{
 				name: 'Get Many',
 				value: 'getMany',
 				action: 'Get many lists',
@@ -55,7 +62,7 @@ const listFields: INodeProperties[] = [
 		displayOptions: {
 			show: {
 				resource: ['list'],
-				operation: ['get', 'update', 'delete'],
+				operation: ['get', 'getContacts', 'update', 'delete'],
 			},
 		},
 		modes: [
@@ -92,6 +99,33 @@ const listFields: INodeProperties[] = [
 		description: 'The name of the list',
 		displayOptions: {
 			show: { resource: ['list'], operation: ['create', 'update'] },
+		},
+	},
+	// ------ Get Contacts ------
+	{
+		displayName: 'Return All',
+		name: 'returnAll',
+		type: 'boolean',
+		default: false,
+		description:
+			'Whether to return all results or only up to a given limit',
+		displayOptions: {
+			show: { resource: ['list'], operation: ['getContacts'] },
+		},
+	},
+	{
+		displayName: 'Limit',
+		name: 'limit',
+		type: 'number',
+		default: 50,
+		description: 'Max number of results to return',
+		typeOptions: { minValue: 1, maxValue: 100 },
+		displayOptions: {
+			show: {
+				resource: ['list'],
+				operation: ['getContacts'],
+				returnAll: [false],
+			},
 		},
 	},
 ];
