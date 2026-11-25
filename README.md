@@ -25,7 +25,7 @@ Full REST API node for managing Seamless.ai resources:
 - **Autopilot** — Start, poll, cancel, and download results of long-running automated contact/company research runs
 - **Campaign** — Create, update, clone, manage contacts, and start, pause, resume, complete, archive, or unarchive campaigns
 - **Campaign Step** — Create, update, delete, pause, resume, and skip campaign steps
-- **List** — Create, get, update, and delete lists
+- **List** — Create, get, update, and delete lists, and get the contacts in a list
 - **Saved Search** — Create, get, update, and delete saved searches
 - **Template** — Create, get, update, and delete email templates
 - **Email** — Create drafts, send, preview, and send bulk emails
